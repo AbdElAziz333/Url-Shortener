@@ -1,4 +1,67 @@
+# x-common-env: &common-env
+#   CONFIG_SERVER: config-server
+#   CONFIG_SERVER_PORT: ${CONFIG_SERVER_PORT}
+#   DISCOVERY_SERVER: discovery-server
+#   DISCOVERY_SERVER_PORT: ${DISCOVERY_SERVER_PORT}
+
+# x-common-healthcheck: &common-healthcheck
+#   interval: 10s
+#   timeout: 5s
+#   retries: 10
+#   start_period: 90s
+
+# x-database-healthcheck: &database-healthcheck
+#   interval: 10s
+#   timeout: 5s
+#   retries: 10
+#   start_period: 60s
+
+# x-common-service: &common-service
+#   networks:
+#     ecommerce-net:
+#   restart: unless-stopped
+#   stdin_open: true
+#   tty: true
+
 services:
+  # gateway:
+  #   image: abdelaziz333/gateway
+  #   ports:
+  #     - "8080:8080"
+  #   environment:
+  #     APP_ENV: docker
+  #     SHORTENER_SERVICE_URL: http://shortener:8081
+  #     REDIRECT_SERVICE_URL: http://redirect:8082
+  #     ANALYTICS_SERVICE_URL: http://analytics:8083
+  #     POSTGRES_HOST: postgres
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: [PASSWORD]
+  #     POSTGRES_DB: postgres
+  #     REDIS_ADDR: redis:6379
+  #     REDIS_USER: redis
+  #     REDIS_PASSWORD: [PASSWORD]
+  
+  # shortener:
+  #   image: abdelaziz333/shortener
+  #   ports:
+  #     - "8081:8081"
+  #   environment:
+  #     APP_ENV: docker
+
+  # redirect:
+  #   image: abdelaziz333/redirect
+  #   ports:
+  #     - "8082:8082"
+  #   environment:
+  #     APP_ENV: docker
+
+  # analytics:
+  #   image: abdelaziz333/analytics
+  #   ports:
+  #     - "8083:8083"
+  #   environment:
+  #     APP_ENV: docker
+      
   postgres:
     image: postgres:16-alpine
     ports:
@@ -10,11 +73,17 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DATABASE: postgres
     restart: unless-stopped
+    networks:
+      - url-shortener-net
     healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d postgres"]
       interval: 10s
-
+      timeout: 5s
+      start_period: 60s
+      retries: 10
+    
   mongo:
-    image: mongo
+    image: mongo:8.0.21
     ports:
       - "27017:27017"
     volumes:
@@ -23,9 +92,14 @@ services:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
     restart: unless-stopped
+    networks:
+      - url-shortener-net
     healthcheck:
-      test: ["mongosh"]
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
+      timeout: 5s
+      start_period: 60s
+      retries: 10
 
   redis:
     image: redis:8.6.2-alpine
@@ -33,14 +107,20 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
-    command:
-      - ""
+      - ./infra/redis/redis.cfg:/usr/local/etc/redis/redis.conf
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
     environment:
       REDISCLI_USER: ${REDIS_USER}
       REDISCLI_PASSWORD: ${REDIS_PASSWORD}
+    restart: unless-stopped
+    networks:
+      - url-shortener-net
     healthcheck:
       test: ["CMD", "redis-cli", "PING"]
       interval: 10s
+      timeout: 5s
+      start_period: 60s
+      retries: 10
     
 volumes:
   postgres_data:
@@ -49,4 +129,5 @@ volumes:
 
 networks:
   url-shortener-net:
-    driver: backend
+    external: true
+    driver: bridge

@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"fmt"
 
 	"aziz.dev/gateway/internal/config"
@@ -8,7 +9,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func NewClient(serviceName string, cfg config.PostgresConfig) (*gorm.DB, error) {
+func NewClient(ctx context.Context, cfg *config.PostgresConfig) (*gorm.DB, error) {
 	dsn := fmt.Sprintf(
 		"host=%s user=%s password=%s dbname=%s port=5432 sslmode=disable",
 		cfg.Host,
@@ -16,7 +17,7 @@ func NewClient(serviceName string, cfg config.PostgresConfig) (*gorm.DB, error) 
 		cfg.Password,
 		cfg.DBName,
 	)
-
+		
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		return nil, err
