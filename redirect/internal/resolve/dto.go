@@ -1,4 +1,4 @@
-package stat
+package resolve
 
 type Dto struct {
 

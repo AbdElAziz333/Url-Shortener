@@ -1,9 +1,11 @@
-package link
+package stat
 
 import "context"
 
 type Service interface {
-	GetAll(ctx context.Context) ([]Dto, error)
+	GetTotalClicks(ctx context.Context) ([]Dto, error)
+	GetGeo(ctx context.Context) ([]Dto, error)
+	GetReferrers(ctx context.Context) ([]Dto, error)
 }
 
 type service struct {
@@ -16,6 +18,14 @@ func NewService(repo Repository) Service {
 	}
 }
 
-func (s *service) GetAll(ctx context.Context) ([]Dto, error) {
+func (s *service) GetTotalClicks(ctx context.Context) ([]Dto, error) {
+	return nil, nil
+}
+
+func (s *service) GetGeo(ctx context.Context) ([]Dto, error) {
+	return nil, nil
+}
+
+func (s *service) GetReferrers(ctx context.Context) ([]Dto, error) {
 	return nil, nil
 }

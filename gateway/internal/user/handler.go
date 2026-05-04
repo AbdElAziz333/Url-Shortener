@@ -16,20 +16,21 @@ func NewHandler(service Service) *Handler {
 
 func (h *Handler) RegisterRoutes(r *gin.RouterGroup) {
 	authRoutes := r.Group("/auth")
-	authRoutes.GET("/register", h.Register)
-	authRoutes.GET("/login", h.Login)
-	authRoutes.GET("/refresh", h.Refresh)
-	authRoutes.GET("/logout", h.Logout)
+	authRoutes.POST("/register", h.Register)
+	authRoutes.POST("/login", h.Login)
+	authRoutes.POST("/refresh", h.Refresh)
+	authRoutes.POST("/logout", h.Logout)
 }
 
 func (h *Handler) Register(c *gin.Context) {
-	var r *RegisterRequest
+	var r RegisterRequest
 
 	if err := c.ShouldBindJSON(&r); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 
-	err := h.service.Register(c, r)
+	err := h.service.Register(c, &r)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -39,14 +40,14 @@ func (h *Handler) Register(c *gin.Context) {
 }
 
 func (h *Handler) Login(c *gin.Context) {
-	var r *LoginRequest
+	var r LoginRequest
 
-	if err := c.ShouldBindJSON(r); err != nil {
+	if err := c.ShouldBindJSON(&r); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	err := h.service.Login(c, r)
+	err := h.service.Login(c, &r)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

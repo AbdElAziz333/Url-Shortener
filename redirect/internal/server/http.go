@@ -3,32 +3,25 @@ package server
 import (
 	"net/http"
 
+	"aziz.dev/redirect/internal/resolve"
 	"github.com/gin-gonic/gin"
 )
 
 func NewRouter(
-	linkHandler *link.Handler,
+	resolverHandler *resolve.Handler,
 ) *gin.Engine {
 	router := gin.New()
 	router.Use(gin.Recovery(), gin.Logger())
+	router.GET("/health", healthHandler)
 
-	router.GET("/health/live", healthLiveHandler)
-	router.GET("/health/ready", healthReadyHandler)
-
-	linkGroup := router.Group("/api/links")
-	linkHandler.RegisterRoutes(linkGroup)
+	// userGroup := router.Group("/api/users")
+	// userHandler.RegisterRoutes(userGroup)
 
 	return router;
 }
 
-func healthLiveHandler(c *gin.Context) {
+func healthHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
-		"message": "OK",
-	})
-}
-
-func healthReadyHandler(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"message": "OK",
+		"status": "up",
 	})
 }

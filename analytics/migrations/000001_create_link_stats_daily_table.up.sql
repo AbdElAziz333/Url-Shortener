@@ -1,9 +1,9 @@
 CREATE TABLE IF NOT EXISTS link_stats_daily (
     id UUID NOT NULL PRIMARY KEY,
     link_code VARCHAR(12) NOT NULL UNIQUE,
-    date ,
-    click_count,
-    unique_ips
+    date DATE NOT NULL,
+    click_count INTEGER NOT NULL,
+    unique_ips UUID NOT NULL
 );
 
 -- link_stats_daily

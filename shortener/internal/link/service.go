@@ -1,18 +1,20 @@
 package link
 
-import "context"
+import (
+	"context"
+)
 
 type Service interface {
 	GetAll(ctx context.Context) ([]Dto, error)
 }
 
 type service struct {
-	repo Repository
+	repo       Repository
 }
 
 func NewService(repo Repository) Service {
 	return &service{
-		repo: repo,
+		repo:       repo,
 	}
 }
 

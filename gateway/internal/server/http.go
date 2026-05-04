@@ -12,22 +12,15 @@ func NewRouter(
 ) *gin.Engine {
 	router := gin.New()
 	router.Use(gin.Recovery(), gin.Logger())
-	router.GET("/health/live", healthLiveHandler)
-	router.GET("/health/ready", healthReadyHandler)
+	router.GET("/health", healthHandler)
 
-	userGroup := router.Group("/api/users")
+	userGroup := router.Group("")
 	userHandler.RegisterRoutes(userGroup)
 
 	return router;
 }
 
-func healthLiveHandler(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"status": "up",
-	})
-}
-
-func healthReadyHandler(c *gin.Context) {
+func healthHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"status": "up",
 	})

@@ -1,4 +1,4 @@
-package link
+package stat
 
 type LinkStatsDaily struct {
 	

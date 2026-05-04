@@ -9,7 +9,6 @@ import (
 
 type User struct {
 	ID uuid.UUID `gorm:"primaryKey;"`
-	FullName string
 	Email string
 	PasswordHash string
 	IsActive bool

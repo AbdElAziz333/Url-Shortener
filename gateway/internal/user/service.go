@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"aziz.dev/gateway/jwt"
+	"aziz.dev/gateway/internal/jwt"
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -43,8 +43,7 @@ func (s *service) Register(ctx context.Context, r *RegisterRequest) error {
 		return err
 	}
 
-	user := &User{
-		FullName: r.FullName,
+	user := User{
 		Email: r.Email,
 		PasswordHash: string(hashedPassword),
 		IsActive: true,
