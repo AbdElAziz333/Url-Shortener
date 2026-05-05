@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"time"
 
 	"aziz.dev/gateway/internal/config"
 	"github.com/joho/godotenv"
@@ -40,6 +41,12 @@ func LoadFromEnv() (*config.AppConfig, error) {
 	redisUser := os.Getenv("REDIS_USER")
 	redisPassword := os.Getenv("REDIS_PASSWORD")
 
+	// jwt
+	accessSecret := os.Getenv("JWT_ACCESS_SECRET")
+	refreshSecret := os.Getenv("JWT_REFRESH_SECRET")
+	accessExpiry := os.Getenv("JWT_ACCESS_EXPIRY")
+	refreshExpiry := os.Getenv("JWT_REFRESH_EXPIRY")
+
 	return &config.AppConfig{
 		Service: config.ServiceConfig{
 			Name: serviceName,
@@ -59,5 +66,19 @@ func LoadFromEnv() (*config.AppConfig, error) {
 			Username: redisUser,
 			Password: redisPassword,
 		},
+		JWT: config.JWTConfig{
+			AccessSecret: []byte(accessSecret),
+			RefreshSecret: []byte(refreshSecret),
+			AccessExpiry: parseDuration(accessExpiry),
+			RefreshExpiry: parseDuration(refreshExpiry),
+		},
 	}, nil
+}
+
+func parseDuration(d string) time.Duration {
+	dur, err := time.ParseDuration(d)
+	if err != nil {
+		return 0
+	}
+	return dur
 }

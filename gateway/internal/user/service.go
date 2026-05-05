@@ -4,24 +4,24 @@ import (
 	"context"
 	"errors"
 
-	"aziz.dev/gateway/internal/jwt"
+	"aziz.dev/gateway/internal/security"
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type Service interface {
 	Register(ctx context.Context, r *RegisterRequest) (error)
-	Login(ctx context.Context, r *LoginRequest) (error)
-	Refresh(ctx context.Context) (string, error)
+	Login(ctx context.Context, r *LoginRequest) (*security.TokenPair, error)
+	Refresh(ctx context.Context) (*security.TokenPair, error)
 }
 
 type service struct {
 	repo Repository
 	redisClient *redis.Client
-	jwtService jwt.Service
+	jwtService security.Service
 }
 
-func NewService(repo Repository, redisClient *redis.Client, jwtService jwt.Service) Service {
+func NewService(repo Repository, redisClient *redis.Client, jwtService security.Service) Service {
 	return &service{
 		repo: repo,
 		redisClient: redisClient,
@@ -58,27 +58,40 @@ func (s *service) Register(ctx context.Context, r *RegisterRequest) error {
 }
 
 //TODO: return access token + refresh token, store in redis
-func (s *service) Login(ctx context.Context, r *LoginRequest) error {
+func (s *service) Login(ctx context.Context, r *LoginRequest) (*security.TokenPair, error) {
 	user, err := s.repo.FindByEmail(ctx, r.Email)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if user == nil {
-		return errors.New("user not found")
+		return nil, errors.New("user not found")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(r.Password)); err != nil {
-		return errors.New("invalid password")
+		return nil, errors.New("invalid password")
 	}
 
 	if !user.IsActive {
-		return errors.New("account is not active")
+		return nil, errors.New("account is not active")
+	}
+
+	accessToken, err := s.jwtService.GenerateAccessToken(user.ID.String())
+	if err != nil {
+		return nil, err
+	}
+
+	refreshToken, err := s.jwtService.GenerateRefreshToken(user.ID.String())
+	if err != nil {
+		return nil, err
 	}
 	
-	return nil
+	return &security.TokenPair{
+		AccessToken: accessToken,
+		RefreshToken: refreshToken,
+	}, nil
 }
 
 //TODO: validate refresh token, generate new access token + refresh token, store in redis
-func (s *service) Refresh(ctx context.Context) (string, error) {
-	return "", nil
+func (s *service) Refresh(ctx context.Context) (*security.TokenPair, error) {
+	return nil, nil
 }

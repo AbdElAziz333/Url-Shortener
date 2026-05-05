@@ -12,8 +12,9 @@ func NewRouter(
 ) *gin.Engine {
 	router := gin.New()
 	router.Use(gin.Recovery(), gin.Logger())
+	shortenerGroup := router.Group("/shortener")
 
-	router.GET("/health", healthHandler)
+	shortenerGroup.GET("/health", healthHandler)
 
 	linkGroup := router.Group("/api/links")
 	linkHandler.RegisterRoutes(linkGroup)

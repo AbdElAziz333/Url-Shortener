@@ -12,9 +12,11 @@ func NewRouter(
 ) *gin.Engine {
 	router := gin.New()
 	router.Use(gin.Recovery(), gin.Logger())
-	router.GET("/health", healthHandler)
+	gatewayGroup := router.Group("/gateway")
 
-	userGroup := router.Group("")
+	gatewayGroup.GET("/health", healthHandler)
+
+	userGroup := gatewayGroup.Group("/")
 	userHandler.RegisterRoutes(userGroup)
 
 	return router;

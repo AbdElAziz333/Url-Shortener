@@ -4,14 +4,15 @@ import (
 	"context"
 
 	"aziz.dev/gateway/internal/configloader"
+	"aziz.dev/gateway/internal/middleware"
 	"aziz.dev/gateway/internal/postgres"
 	"aziz.dev/gateway/internal/proxy"
 
 	// "aziz.dev/gateway/internal/proxy"
 	"aziz.dev/gateway/internal/redis"
+	"aziz.dev/gateway/internal/security"
 	"aziz.dev/gateway/internal/server"
 	"aziz.dev/gateway/internal/user"
-	"aziz.dev/gateway/internal/jwt"
 )
 
 func main() {
@@ -31,25 +32,29 @@ func main() {
 	}
 
 	userRepository := user.NewRepository(postgresDB)
-	jwtService := jwt.NewService(redisClient)
+	jwtService, err := security.NewService(&config.JWT, redisClient)
+	if err != nil {
+		panic(err)
+	}
+	
 	userService := user.NewService(userRepository, redisClient, jwtService)
 	userHandler := user.NewHandler(userService)
 
 	router := server.NewRouter(userHandler)
 
-	shortener := router.Group("/api/links")
-	shortener.POST("/", proxy.ReverseProxy("/api/links", "/api/links", config.Service.ShortenerServiceURL))
-	shortener.GET("/", proxy.ReverseProxy("/api/links", "/api/links", config.Service.ShortenerServiceURL))
-	shortener.PATCH("/:code", proxy.ReverseProxy("/api/links", "/api/links", config.Service.ShortenerServiceURL))
-	shortener.DELETE("/:code", proxy.ReverseProxy("/api/links", "/api/links", config.Service.ShortenerServiceURL))
+	shortener := router.Group("/shortener")
+	shortener.POST("/links", middleware.AccessTokenMiddleware(&config.JWT), proxy.ReverseProxy("/shortener", "/shortener", config.Service.ShortenerServiceURL))
+	shortener.GET("/links", middleware.AccessTokenMiddleware(&config.JWT), proxy.ReverseProxy("/shortener", "/shortener", config.Service.ShortenerServiceURL))
+	shortener.PATCH("/links/:code", middleware.AccessTokenMiddleware(&config.JWT), proxy.ReverseProxy("/shortener", "/shortener", config.Service.ShortenerServiceURL))
+	shortener.DELETE("/links/:code", middleware.AccessTokenMiddleware(&config.JWT), proxy.ReverseProxy("/shortener", "/shortener", config.Service.ShortenerServiceURL))
 
-	redirect := router.Group("/r")
-	redirect.GET("/:code", proxy.ReverseProxy("/r", "/r", config.Service.RedirectServiceURL))
+	redirect := router.Group("/redirect")
+	redirect.GET("/:code", proxy.ReverseProxy("/redirect", "/redirect", config.Service.RedirectServiceURL))
 
-	analytics := router.Group("/api/analytics")
-	analytics.GET("/stats/:code", proxy.ReverseProxy("/api/analytics", "/api/analytics", config.Service.AnalyticsServiceURL))
-	analytics.GET("/stats/:code/geo", proxy.ReverseProxy("/api/analytics", "/api/analytics", config.Service.AnalyticsServiceURL))
-	analytics.GET("/stats/:code/referrers", proxy.ReverseProxy("/api/analytics", "/api/analytics", config.Service.AnalyticsServiceURL))
+	analytics := router.Group("/analytics")
+	analytics.GET("/api/stats/:code", middleware.AccessTokenMiddleware(&config.JWT), proxy.ReverseProxy("/analytics", "/analytics", config.Service.AnalyticsServiceURL))
+	analytics.GET("/api/stats/:code/geo", middleware.AccessTokenMiddleware(&config.JWT), proxy.ReverseProxy("/analytics", "/analytics", config.Service.AnalyticsServiceURL))
+	analytics.GET("/api/stats/:code/referrers", middleware.AccessTokenMiddleware(&config.JWT), proxy.ReverseProxy("/analytics", "/analytics", config.Service.AnalyticsServiceURL))
 
 	router.Run(":"+config.Service.Port)
 }

@@ -1,9 +1,12 @@
 package config
 
+import "time"
+
 type AppConfig struct {
 	Service ServiceConfig
 	Postgres PostgresConfig
 	Redis RedisConfig
+	JWT JWTConfig
 }
 
 type ServiceConfig struct {
@@ -25,4 +28,11 @@ type RedisConfig struct {
 	Addr string
 	Username string
 	Password string
+}
+
+type JWTConfig struct {
+	AccessSecret []byte
+	RefreshSecret []byte
+	AccessExpiry time.Duration
+	RefreshExpiry time.Duration
 }

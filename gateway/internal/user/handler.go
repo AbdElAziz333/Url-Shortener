@@ -47,17 +47,31 @@ func (h *Handler) Login(c *gin.Context) {
 		return
 	}
 
-	err := h.service.Login(c, &r)
+	t, err := h.service.Login(c, &r)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	c.Header("access_token", t.AccessToken)
+	// c.Header("refresh_token", t.RefreshToken)
+	// maxAge := int((time.Duration(config.RefreshExpiry) * time.Second) - time.Now())
+	c.SetCookie("refresh_token", t.RefreshToken, 60*60*24*7, "/", "localhost", false, true)
 	c.JSON(http.StatusOK, gin.H{"message": "Logged in successfully..."})
 }
 
 func (h *Handler) Refresh(c *gin.Context) {
-	h.service.Refresh(c)
+	t, err := h.service.Refresh(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.Header("access_token", t.AccessToken)
+	// c.Header("refresh_token", t.RefreshToken)
+
+	c.SetCookie("refresh_token", t.RefreshToken, 60*60*24*7, "/", "localhost", false, true)
+
 	c.JSON(http.StatusOK, gin.H{"message": "Refreshed token successfully..."})
 }
 

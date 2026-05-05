@@ -24,43 +24,114 @@
 #   tty: true
 
 services:
-  # gateway:
-  #   image: abdelaziz333/gateway
-  #   ports:
-  #     - "8080:8080"
-  #   environment:
-  #     APP_ENV: docker
-  #     SHORTENER_SERVICE_URL: http://shortener:8081
-  #     REDIRECT_SERVICE_URL: http://redirect:8082
-  #     ANALYTICS_SERVICE_URL: http://analytics:8083
-  #     POSTGRES_HOST: postgres
-  #     POSTGRES_USER: postgres
-  #     POSTGRES_PASSWORD: [PASSWORD]
-  #     POSTGRES_DB: postgres
-  #     REDIS_ADDR: redis:6379
-  #     REDIS_USER: redis
-  #     REDIS_PASSWORD: [PASSWORD]
+  gateway:
+    image: aziz-dev/gateway
+    ports:
+      - "8080:8080"
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    networks:
+      - url-shortener-net
+    environment:
+      APP_ENV: docker
+      SERVICE_NAME: gateway
+      SERVICE_PORT: 8080
+      SHORTENER_SERVICE_URL: http://shortener:8081
+      REDIRECT_SERVICE_URL: http://redirect:8082
+      ANALYTICS_SERVICE_URL: http://analytics:8083
+      POSTGRES_HOST: postgres
+      POSTGRES_USER: aziz
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: gateway
+      REDIS_ADDR: redis:6379
+      REDIS_USER: app
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_ACCESS_EXPIRY: ${JWT_ACCESS_EXPIRY}
+      JWT_REFRESH_EXPIRY: ${JWT_REFRESH_EXPIRY}
+    profiles:
+      - all
+      - service
   
-  # shortener:
-  #   image: abdelaziz333/shortener
-  #   ports:
-  #     - "8081:8081"
-  #   environment:
-  #     APP_ENV: docker
+  shortener:
+    image: aziz-dev/shortener
+    ports:
+      - "8081:8081"
+    build:
+      context: ./shortener
+      dockerfile: Dockerfile
+      # tag: aziz-dev/shortener
+    restart: unless-stopped
+    networks:
+      - url-shortener-net
+    environment:
+      APP_ENV: docker
+      SERVICE_NAME: shortener
+      SERVICE_PORT: 8081
+      POSTGRES_HOST: postgres
+      POSTGRES_USER: aziz
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: shortener
+      KAFKA_BROKERS: kafka:29092
+      KAFKA_TOPIC: events
+    profiles:
+      - all
+      - service
 
-  # redirect:
-  #   image: abdelaziz333/redirect
-  #   ports:
-  #     - "8082:8082"
-  #   environment:
-  #     APP_ENV: docker
+  redirect:
+    image: aziz-dev/redirect
+    ports:
+      - "8082:8082"
+    build:
+      context: ./redirect
+      dockerfile: Dockerfile
+      # tag: aziz-dev/redirect
+    restart: unless-stopped
+    networks:
+      - url-shortener-net
+    environment:
+      APP_ENV: docker
+      SERVICE_NAME: redirect
+      SERVICE_PORT: 8082
+      POSTGRES_HOST: postgres
+      POSTGRES_USER: aziz
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: shortener
+      REDIS_ADDR: redis:6379
+      REDIS_USER: app
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    profiles:
+      - all
+      - service
 
-  # analytics:
-  #   image: abdelaziz333/analytics
-  #   ports:
-  #     - "8083:8083"
-  #   environment:
-  #     APP_ENV: docker
+  analytics:
+    image: aziz-dev/analytics
+    ports:
+      - "8083:8083"
+    build:
+      context: ./analytics
+      dockerfile: Dockerfile
+      # tag: aziz-dev/analytics
+    restart: unless-stopped
+    networks:
+      - url-shortener-net
+    environment:
+      APP_ENV: docker
+      SERVICE_NAME: analytics
+      SERVICE_PORT: 8083
+      POSTGRES_HOST: postgres
+      POSTGRES_USER: aziz
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: analytics
+      KAFKA_BROKERS: kafka:29092
+      KAFKA_TOPIC: events
+      MONGO_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017
+    profiles:
+      - all
+      - service
       
   postgres:
     image: postgres:16-alpine
@@ -82,6 +153,9 @@ services:
       timeout: 5s
       start_period: 60s
       retries: 10
+    profiles:
+      - all
+      - database
     
   mongo:
     image: mongo:8.0.21
@@ -101,6 +175,9 @@ services:
       timeout: 5s
       start_period: 60s
       retries: 10
+    profiles:
+      - all
+      - database
 
   redis:
     image: redis:8.6.2-alpine
@@ -122,6 +199,9 @@ services:
       timeout: 5s
       start_period: 60s
       retries: 10
+    profiles:
+      - all
+      - database
     
 volumes:
   postgres_data:

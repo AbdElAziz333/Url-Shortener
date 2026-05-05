@@ -12,7 +12,9 @@ func NewRouter(
 ) *gin.Engine {
 	router := gin.New()
 	router.Use(gin.Recovery(), gin.Logger())
-	router.GET("/health", healthHandler)
+	redirectGroup := router.Group("/redirect")
+
+	redirectGroup.GET("/health", healthHandler)
 
 	// userGroup := router.Group("/api/users")
 	// userHandler.RegisterRoutes(userGroup)

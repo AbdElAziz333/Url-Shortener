@@ -25,6 +25,29 @@ services:
       timeout: 10s
       retries: 10
       start_period: 40s
+    profiles:
+      - all
+      - infra
+
+  kafka-init:
+    image: bitnami/kafka:latest
+    depends_on:
+      kafka:
+        condition: service_healthy
+    volumes:
+      - ./infra/kafka/init-topics.sh:/init-topics.sh
+    networks:
+      - url-shortener-net
+    entrypoint: ["/bin/bash", "/init-topics.sh"]
+    restart: "no"
+    profiles:
+      - all
+      - infra
 
 volumes:
   kafka_data:
+
+networks:
+  url-shortener-net:
+    external: true
+    driver: bridge
