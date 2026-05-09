@@ -21,7 +21,20 @@ func (h *Handler) RegisterRoutes(r *gin.RouterGroup) {
 }
 
 func (h *Handler) ResolveCode(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"message": "OK",
-	})
+	code := c.Param("code")
+
+	if code == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "code is required",
+		})
+		return
+	}
+
+	redirect, err := h.service.ResolveCode(c.Request.Context(), code)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.Redirect(http.StatusFound, redirect.OriginalURL)
 }

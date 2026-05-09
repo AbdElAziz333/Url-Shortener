@@ -1,22 +1,29 @@
 package link
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
 
 type Link struct {
-	ID uint64 `gorm:"primaryKey;"`
-	Code string
+	ID          uuid.UUID `gorm:"primaryKey;"`
+	UserID      uuid.UUID `gorm:"index"`
+	Code        string `gorm:"uniqueIndex"`
 	OriginalURL string
 	CustomAlias string
-	ExpiresAt time.Time
-	IsActive bool
-	CreatedAt time.Time
+	ExpiresAt   *time.Time
+	IsActive    bool
+	CreatedAt   time.Time
 }
 
-type OutboxEvent struct {
-	ID uint64
-	EventType string
-	Payload map[string]any
-	Status string
-	CreatedAt time.Time
-	PublishedAt time.Time
+func (l *Link) BeforeCreate(tx *gorm.DB) (err error) {
+	l.ID, err = uuid.NewV7()
+	if err != nil {
+		return err
+	}
+
+	l.CreatedAt = time.Now()
+	return nil
 }

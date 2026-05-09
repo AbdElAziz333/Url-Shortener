@@ -16,7 +16,7 @@ func NewRouter(
 
 	shortenerGroup.GET("/health", healthHandler)
 
-	linkGroup := router.Group("/api/links")
+	linkGroup := shortenerGroup.Group("/api")
 	linkHandler.RegisterRoutes(linkGroup)
 
 	return router;

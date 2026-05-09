@@ -26,7 +26,8 @@ type RedisConfig struct {
 }
 
 type KafkaConfig struct {
-	Brokers []string
-	User string
-	Password string
+	Brokers  []string
+	ConsumerTopics []string
+	ProducerTopic string
+	GroupID  string
 }

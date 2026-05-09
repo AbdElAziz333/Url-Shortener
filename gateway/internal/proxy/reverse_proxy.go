@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httputil"
@@ -10,9 +11,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type Resolver interface {
-	Resolve(service string) (string, error)
-}
+// Put userIDKey at package level, outside any function
+type contextKey string
+const userIDKey contextKey = "userID"
 
 func ReverseProxy(fromPrefix, toPrefix, target string) gin.HandlerFunc {
 	url, err := url2.Parse(target)
@@ -32,22 +33,24 @@ func ReverseProxy(fromPrefix, toPrefix, target string) gin.HandlerFunc {
 
 		req.Header.Set("Forwarded-Host", req.Header.Get("Host"))
 		req.Host = url.Host
+
+		// Read userID from context and set header here, AFTER originalDirector ran
+		if id, ok := req.Context().Value(userIDKey).(string); ok && id != "" {
+			req.Header.Set("User-ID", id)
+		}
 	}
 
 	return func(c *gin.Context) {
-		// Propagate authenticated user info to downstream services via headers.
 		if v, ok := c.Get("userID"); ok {
-			if id, ok2 := v.(uint64); ok2 {
-				c.Request.Header.Set("User-ID", fmt.Sprintf("%d", id))
+			if id, ok2 := v.(string); ok2 {
+				// Set header directly so downstream always receives it.
+				c.Request.Header.Set("User-ID", id)
+				c.Request = c.Request.WithContext(
+					context.WithValue(c.Request.Context(), userIDKey, id),
+				)
 			}
 		}
 
-		if v, ok := c.Get("role"); ok {
-			if role, ok2 := v.(string); ok2 {
-				c.Request.Header.Set("User-Role", role)
-			}
-		}
-		
 		proxy.ServeHTTP(c.Writer, c.Request)
 	}
 }

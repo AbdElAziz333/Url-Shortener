@@ -28,6 +28,7 @@ services:
     profiles:
       - all
       - infra
+      - messaging
 
   kafka-init:
     image: bitnami/kafka:latest
@@ -43,6 +44,7 @@ services:
     profiles:
       - all
       - infra
+      - messaging
 
 volumes:
   kafka_data:

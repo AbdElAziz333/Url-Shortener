@@ -15,9 +15,7 @@ func NewRouter(
 	redirectGroup := router.Group("/redirect")
 
 	redirectGroup.GET("/health", healthHandler)
-
-	// userGroup := router.Group("/api/users")
-	// userHandler.RegisterRoutes(userGroup)
+	redirectGroup.GET("/:code", resolverHandler.ResolveCode)
 
 	return router;
 }

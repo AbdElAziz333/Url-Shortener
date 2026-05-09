@@ -1,13 +1,12 @@
 Diagrams:
 
-[Entity Relationship Diagram](https://lucid.app/lucidchart/3d4210f6-f973-4acd-a931-ce76381627d2/edit?viewport_loc=-1852%2C-342%2C1794%2C959%2C0_0&invitationId=inv_0777507a-386a-40b0-bdfb-a3c4a98e031f)
-[API Flow Diagram](https://lucid.app/lucidchart/0a9dae85-e681-4233-8445-08d6927f0bf5/edit?viewport_loc=180%2C127%2C1536%2C928%2C0_0&invitationId=inv_0777507a-386a-40b0-bdfb-a3c4a98e031f)
-[Sequence Diagram](https://lucid.app/lucidchart/cd7dc50c-7268-4466-90bd-49269480b6a4/edit?viewport_loc=-2248%2C-745%2C1732%2C979%2C0_0&invitationId=inv_0777507a-386a-40b0-bdfb-a3c4a98e031f)
-[System Architecture Diagram](https://lucid.app/lucidchart/8949797b-f1d0-43a1-ae1c-00a45ae65c2e/edit?viewport_loc=-1083%2C622%2C1565%2C837%2C0_0&invitationId=inv_e4f9ce9c-0885-4889-907a-dd559d005784)
-[Deployment Diagram](https://lucid.app/lucidchart/cd7dc50c-7268-4466-90bd-49269480b6a4/edit?viewport_loc=-2248%2C-745%2C1732%2C979%2C0_0&invitationId=inv_0777507a-386a-40b0-bdfb-a3c4a98e031f)
-[Event Flow Diagram](https://lucid.app/lucidchart/cd7dc50c-7268-4466-90bd-49269480b6a4/edit?viewport_loc=-2248%2C-745%2C1732%2C979%2C0_0&invitationId=inv_0777507a-386a-40b0-bdfb-a3c4a98e031f)
+[Entity Relationship Diagram](https://lucid.app/lucidchart/3d4210f6-f973-4acd-a931-ce76381627d2/edit?viewport_loc=-1946%2C-344%2C1794%2C959%2C0_0&invitationId=inv_0777507a-386a-40b0-bdfb-a3c4a98e031f)
+[System Architecture Diagram](https://lucid.app/lucidchart/8949797b-f1d0-43a1-ae1c-00a45ae65c2e/edit?viewport_loc=-1850%2C426%2C3130%2C1674%2C0_0&invitationId=inv_e4f9ce9c-0885-4889-907a-dd559d005784)
+[Kubernetes Architecture Diagram](https://lucid.app/lucidchart/84983e85-e46f-4ec9-a28b-8fd419a09e9c/edit?viewport_loc=480%2C-1498%2C3164%2C1674%2C0_0&invitationId=inv_26dab6d4-bdee-4f0f-93c0-411bfb947026)
+
 
 ### Infrastructure:
+[Infrastructure Repository](https://github.com/AbdElAziz333/url-shortener-infra)
 
 ## Vault
 ## Kafka
@@ -41,6 +40,3 @@ github.com/prometheus/client_golang/prometheus/promhttp
 go.uber.org/zap
 google.golang.org/grpc
 github.com/hashicorp/vault/api
-
-# -------------------------------------------
-

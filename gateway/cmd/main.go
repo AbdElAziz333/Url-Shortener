@@ -43,10 +43,10 @@ func main() {
 	router := server.NewRouter(userHandler)
 
 	shortener := router.Group("/shortener")
-	shortener.POST("/links", middleware.AccessTokenMiddleware(&config.JWT), proxy.ReverseProxy("/shortener", "/shortener", config.Service.ShortenerServiceURL))
-	shortener.GET("/links", middleware.AccessTokenMiddleware(&config.JWT), proxy.ReverseProxy("/shortener", "/shortener", config.Service.ShortenerServiceURL))
-	shortener.PATCH("/links/:code", middleware.AccessTokenMiddleware(&config.JWT), proxy.ReverseProxy("/shortener", "/shortener", config.Service.ShortenerServiceURL))
-	shortener.DELETE("/links/:code", middleware.AccessTokenMiddleware(&config.JWT), proxy.ReverseProxy("/shortener", "/shortener", config.Service.ShortenerServiceURL))
+	shortener.GET("/api/links", middleware.AccessTokenMiddleware(&config.JWT), proxy.ReverseProxy("/shortener", "/shortener", config.Service.ShortenerServiceURL))
+	shortener.POST("/api/links", middleware.AccessTokenMiddleware(&config.JWT), proxy.ReverseProxy("/shortener", "/shortener", config.Service.ShortenerServiceURL))
+	shortener.PATCH("/api/links/:code/expiry", middleware.AccessTokenMiddleware(&config.JWT), proxy.ReverseProxy("/shortener", "/shortener", config.Service.ShortenerServiceURL))
+	shortener.DELETE("/api/links/:code", middleware.AccessTokenMiddleware(&config.JWT), proxy.ReverseProxy("/shortener", "/shortener", config.Service.ShortenerServiceURL))
 
 	redirect := router.Group("/redirect")
 	redirect.GET("/:code", proxy.ReverseProxy("/redirect", "/redirect", config.Service.RedirectServiceURL))

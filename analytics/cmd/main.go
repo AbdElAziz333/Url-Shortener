@@ -4,10 +4,11 @@ import (
 	"context"
 
 	"aziz.dev/analytics/internal/configloader"
-	"aziz.dev/analytics/internal/postgres"
+	"aziz.dev/analytics/internal/kafka"
 	"aziz.dev/analytics/internal/mongo"
-	"aziz.dev/analytics/internal/stat"
+	"aziz.dev/analytics/internal/postgres"
 	"aziz.dev/analytics/internal/server"
+	"aziz.dev/analytics/internal/stat"
 )
 
 func main() {
@@ -26,8 +27,13 @@ func main() {
 		panic(err)
 	}
 
-	statRepositoy := stat.NewRepository(postgresDB, mongoClient)
-	statService := stat.NewService(statRepositoy)
+	kafkaConsumer, err := kafka.NewConsumer(context.Background(), &config.Kafka)
+	if err != nil {
+		panic(err)
+	}
+
+	statRepository := stat.NewRepository(postgresDB, mongoClient, kafkaConsumer)
+	statService := stat.NewService(statRepository)
 	statHandler := stat.NewHandler(statService)
 
 	router := server.NewRouter(statHandler)

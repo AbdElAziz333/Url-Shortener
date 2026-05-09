@@ -1,10 +1,10 @@
 package config
 
 type AppConfig struct {
-	Service ServiceConfig
+	Service  ServiceConfig
 	Postgres PostgresConfig
-	Kafka KafkaConfig
-	Mongo MongoConfig
+	Kafka    KafkaConfig
+	Mongo    MongoConfig
 }
 
 type ServiceConfig struct {
@@ -13,10 +13,10 @@ type ServiceConfig struct {
 }
 
 type PostgresConfig struct {
-	Host string
-	User string
+	Host     string
+	User     string
 	Password string
-	DBName string
+	DBName   string
 }
 
 type MongoConfig struct {
@@ -24,7 +24,8 @@ type MongoConfig struct {
 }
 
 type KafkaConfig struct {
-	Brokers []string
-	Username string
-	Password string
+	Brokers  []string
+	ConsumerTopics []string
+	ProducerTopic string
+	GroupID  string
 }

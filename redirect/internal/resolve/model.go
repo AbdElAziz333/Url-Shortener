@@ -1,22 +1,18 @@
 package resolve
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type Link struct {
-	ID uint64 `gorm:"primaryKey;"`
-	Code string
+	ID          uuid.UUID `gorm:"primaryKey;"`
+	UserID      uuid.UUID `gorm:"index"`
+	Code        string `gorm:"uniqueIndex"`
 	OriginalURL string
 	CustomAlias string
-	ExpiresAt time.Time
-	IsActive bool
-	CreatedAt time.Time
-}
-
-type OutboxEvent struct {
-	ID uint64
-	EventType string
-	Payload map[string]any
-	Status string
-	CreatedAt time.Time
-	PublishedAt time.Time
+	ExpiresAt   *time.Time
+	IsActive    bool
+	CreatedAt   time.Time
 }

@@ -16,7 +16,7 @@ func NewRouter(
 
 	analyticsGroup.GET("/health", healthHandler)
 
-	statGroup := router.Group("/api/stats")
+	statGroup := analyticsGroup.Group("/api/stats")
 	statHandler.RegisterRoutes(statGroup)
 
 	return router;

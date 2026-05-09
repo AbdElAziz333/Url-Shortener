@@ -7,7 +7,7 @@ import (
 )
 
 type Repository interface {
-	FindAll(ctx context.Context) ([]Link, error)
+	Find(ctx context.Context, code string) (*Link, error)
 }
 
 type repository struct {
@@ -20,6 +20,13 @@ func NewRepository(db *gorm.DB) Repository {
 	}
 }
 
-func (r *repository) FindAll(ctx context.Context) ([]Link, error) {
-	return nil, nil
+func (r *repository) Find(ctx context.Context, code string) (*Link, error) {
+	var link Link
+
+	err := r.db.WithContext(ctx).Where("code = ?", code).First(&link).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &link, nil
 }

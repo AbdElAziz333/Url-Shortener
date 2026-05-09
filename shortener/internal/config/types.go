@@ -22,7 +22,8 @@ type PostgresConfig struct {
 }
 
 type KafkaConfig struct {
-	Brokers []string
-	Username string
-	Password string
+	Brokers  []string
+	ConsumerTopics []string
+	ProducerTopic string
+	GroupID  string
 }

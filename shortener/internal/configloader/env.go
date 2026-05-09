@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"aziz.dev/shortener/internal/config"
 	"github.com/joho/godotenv"
@@ -36,9 +37,19 @@ func LoadFromEnv() (*config.AppConfig, error) {
 	postgresDB := os.Getenv("POSTGRES_DB")
 
 	//kafka
-	kafkaBroker := os.Getenv("KAFKA_BROKER")
-	kafkaUser := os.Getenv("KAFKA_USER")
-	kafkaPassword := os.Getenv("KAFKA_PASSWORD")
+	kafkaBrokers := os.Getenv("KAFKA_BROKERS")
+	kafkaProducerTopic := os.Getenv("KAFKA_PRODUCER_TOPIC")
+	kafkaGroupID := os.Getenv("KAFKA_GROUP_ID")
+
+	// comma-separated topics from single env var
+	consumerTopicsRaw := os.Getenv("KAFKA_CONSUMER_TOPICS")
+	var kafkaConsumerTopics []string
+
+	for _, t := range strings.Split(consumerTopicsRaw, ",") {
+		if t = strings.TrimSpace(t); t != "" {
+			kafkaConsumerTopics = append(kafkaConsumerTopics, t)
+		}
+	}
 
 	return &config.AppConfig{
 		Service: config.ServiceConfig{
@@ -55,9 +66,10 @@ func LoadFromEnv() (*config.AppConfig, error) {
 			DBName: postgresDB,
 		},
 		Kafka: config.KafkaConfig{
-			Brokers: []string{kafkaBroker},
-			Username: kafkaUser,
-			Password: kafkaPassword,
+			Brokers:  []string{kafkaBrokers},
+			ConsumerTopics: kafkaConsumerTopics,
+			ProducerTopic: kafkaProducerTopic,
+			GroupID: kafkaGroupID,
 		},
 	}, nil
 }

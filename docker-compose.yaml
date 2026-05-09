@@ -75,8 +75,10 @@ services:
       POSTGRES_USER: aziz
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: shortener
-      KAFKA_BROKERS: kafka:29092
-      KAFKA_TOPIC: events
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CONSUMER_TOPICS: "url-shortener.urls.created,url-shortener.urls.deleted,url-shortener.redirects.requested,url-shortener.redirects.resolved,url-shortener.redirects.failed"
+      KAFKA_PRODUCER_TOPIC: "url-shortener.analytics.aggregated"
+      KAFKA_GROUP_ID: shortener-service
     profiles:
       - all
       - service
@@ -103,6 +105,10 @@ services:
       REDIS_ADDR: redis:6379
       REDIS_USER: app
       REDIS_PASSWORD: ${REDIS_PASSWORD}
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CONSUMER_TOPICS: "url-shortener.urls.created,url-shortener.urls.deleted,url-shortener.redirects.requested,url-shortener.redirects.resolved,url-shortener.redirects.failed"
+      KAFKA_PRODUCER_TOPIC: "url-shortener.analytics.aggregated"
+      KAFKA_GROUP_ID: redirect-service
     profiles:
       - all
       - service
@@ -126,9 +132,11 @@ services:
       POSTGRES_USER: aziz
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: analytics
-      KAFKA_BROKERS: kafka:29092
-      KAFKA_TOPIC: events
       MONGO_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CONSUMER_TOPICS: "url-shortener.urls.created,url-shortener.urls.deleted,url-shortener.redirects.requested,url-shortener.redirects.resolved,url-shortener.redirects.failed"
+      KAFKA_PRODUCER_TOPIC: "url-shortener.analytics.aggregated"
+      KAFKA_GROUP_ID: analytics-service
     profiles:
       - all
       - service
