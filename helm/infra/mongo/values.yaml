@@ -1,0 +1,22 @@
+fullnameOverride: mongo
+architecture: standalone
+
+auth:
+  enabled: true
+  rootUser: az
+  rootPassword: az333
+
+persistence:
+  enabled: true
+  size: 2Gi
+
+resources:
+  requests:
+    cpu: "250m"
+    memory: "512Mi"
+  limits:
+    cpu: "500m"
+    memory: "1Gi"
+
+networkPolicy:
+  enabled: false

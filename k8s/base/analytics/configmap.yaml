@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: analytics-config
+  namespace: url-shortener
+  labels:
+    app: analytics
+    app.kubernetes.io/name: analytics
+    app.kubernetes.io/part-of: url-shortener
+data:
+  APP_ENV: "kubernetes"
+  SERVICE_NAME: "analytics"
+  SERVICE_PORT: "8083"
+  POSTGRES_HOST: "postgres"
+  POSTGRES_DB: "analytics"
+  POSTGRES_USER: "aziz"
+  KAFKA_BROKERS: "kafka:9092"
+  KAFKA_GROUP_ID: "analytics-service"

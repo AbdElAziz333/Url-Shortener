@@ -1,0 +1,29 @@
+repositories:
+  - name: bitnami
+    url: https://charts.bitnami.com/bitnami
+
+releases:
+  - name: postgres
+    namespace: url-shortener
+    createNamespace: true
+    chart: bitnami/postgresql
+    values:
+      - ./postgres/values.yaml
+
+  - name: mongodb
+    namespace: url-shortener
+    chart: bitnami/mongodb
+    values:
+      - ./mongo/values.yaml
+
+  - name: redis
+    namespace: url-shortener
+    chart: bitnami/redis
+    values:
+      - ./redis/values.yaml
+
+  - name: kafka
+    namespace: url-shortener
+    chart: bitnami/kafka
+    values:
+      - ./kafka/values.yaml

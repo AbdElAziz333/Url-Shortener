@@ -1,0 +1,31 @@
+fullnameOverride: postgres
+
+auth:
+  enablePostgresUser: true
+  postgresPassword: aziz333
+  username: aziz
+  password: aziz333
+  database: postgres
+
+primary:
+  persistence:
+    enabled: true
+    size: 2Gi
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "512Mi"
+    limits:
+      cpu: "500m"
+      memory: "1Gi"
+  networkPolicy:
+    enabled: false
+  initdb:
+    scripts:
+      00-init-databases.sql: |
+        CREATE DATABASE gateway;
+        CREATE DATABASE shortener;
+        CREATE DATABASE analytics;
+        GRANT ALL PRIVILEGES ON DATABASE gateway TO "aziz";
+        GRANT ALL PRIVILEGES ON DATABASE shortener TO "aziz";
+        GRANT ALL PRIVILEGES ON DATABASE analytics TO "aziz";

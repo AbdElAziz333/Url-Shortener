@@ -1,2 +1,8 @@
 # url-shortener-gitops
-The GitOps repository for the Url-Shortener
+
+# Kubernetes
+Kubernetes is used for container orcherstration
+
+# Helm
+
+Helm is used for infrastructure apps charts

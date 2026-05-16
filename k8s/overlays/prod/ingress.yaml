@@ -1,0 +1,65 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: url-shortener
+  namespace: url-shortener
+  annotations:
+    # 1. Binds your Google-Managed SSL Certificate
+    # networking.gke.io/managed-certificates: "url-shortener-managed-cert"
+    
+    # 2. Binds the HTTPS redirect configuration we created above
+    # networking.gke.io/v1beta1.FrontendConfig: "url-shortener-frontend-config"
+    
+    # 3. Explicitly tells Autopilot to provision an External Application Load Balancer
+    kubernetes.io/ingress.class: "gce"
+    
+    # 4. Crucial: Keep HTTP open so Google's CA can complete the validation handshake
+    kubernetes.io/ingress.allow-http: "true" 
+  labels:
+    app.kubernetes.io/part-of: url-shortener
+spec:
+# 1. Force the Ingress to route any unknown traffic to your gateway
+  defaultBackend:
+    service:
+      name: gateway
+      port:
+        number: 8080
+  rules:
+    - host: url-shortener.aziz-mc.com
+      http:
+        paths:
+          - path: /gateway/health
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway
+                port:
+                  number: 8080
+          - path: /shortener/health
+            pathType: Prefix
+            backend:
+              service:
+                name: shortener
+                port:
+                  number: 8081
+          - path: /redirect/health
+            pathType: Prefix
+            backend:
+              service:
+                name: redirect
+                port:
+                  number: 8082
+          - path: /analytics/health
+            pathType: Prefix
+            backend:
+              service:
+                name: analytics
+                port:
+                  number: 8083
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway
+                port:
+                  number: 8080
