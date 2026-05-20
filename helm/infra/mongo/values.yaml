@@ -4,7 +4,9 @@ architecture: standalone
 auth:
   enabled: true
   rootUser: az
-  rootPassword: az333
+  existingSecret: mongo-secret
+  secretKeys:
+    rootPassword: password
 
 persistence:
   enabled: true

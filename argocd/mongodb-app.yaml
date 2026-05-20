@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mongodb
+  namespace: argocd
+spec:
+  project: default
+  sources:
+    - repoURL: https://charts.bitnami.com/bitnami
+      chart: mongodb
+      targetRevision: 13.18.0
+      helm:
+        valueFiles:
+          - $values/helm/infra/mongo/values.yaml
+    - repoURL: https://github.com/AbdElAziz333/url-shortener-gitops.git
+      targetRevision: HEAD
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: url-shortener
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

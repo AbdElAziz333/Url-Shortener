@@ -1,0 +1,30 @@
+image:
+  repository: bitnami/sealed-secrets-controller
+  tag: v0.24.0
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+command:
+  - controller
+  - --key-renew-period=0
+
+securityContext:
+  runAsUser: 1001
+  fsGroup: 1001
+
+service:
+  type: ClusterIP
+  port: 8080
+
+rbac:
+  create: true
+  pspEnabled: false

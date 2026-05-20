@@ -5,26 +5,31 @@ namespace: url-shortener
 
 resources:
   - namespace.yaml
+  - sealed-secrets-controller.yaml
   - kafka-topics-job.yaml
   - gateway/deployment.yaml
   - gateway/service.yaml
   - gateway/configmap.yaml
-  - gateway/secret.yaml
+  # - gateway/secret.yaml  # Replaced with SealedSecret
+  - gateway/sealed-secret.yaml  # Add after encrypting with kubeseal
   - gateway/hpa.yaml
   - shortener/deployment.yaml
   - shortener/service.yaml
   - shortener/configmap.yaml
-  - shortener/secret.yaml
+  # - shortener/secret.yaml  # Replaced with SealedSecret
+  - shortener/sealed-secret.yaml  # Add after encrypting with kubeseal
   - shortener/hpa.yaml
   - redirect/deployment.yaml
   - redirect/service.yaml
   - redirect/configmap.yaml
-  - redirect/secret.yaml
+  # - redirect/secret.yaml  # Replaced with SealedSecret
+  - redirect/sealed-secret.yaml  # Add after encrypting with kubeseal
   - redirect/hpa.yaml
   - analytics/deployment.yaml
   - analytics/service.yaml
   - analytics/configmap.yaml
-  - analytics/secret.yaml
+  # - analytics/secret.yaml  # Replaced with SealedSecret
+  - analytics/sealed-secret.yaml  # Add after encrypting with kubeseal
   - analytics/hpa.yaml
 
 labels:

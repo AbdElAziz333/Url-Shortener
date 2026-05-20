@@ -2,10 +2,12 @@ fullnameOverride: postgres
 
 auth:
   enablePostgresUser: true
-  postgresPassword: aziz333
   username: aziz
-  password: aziz333
   database: postgres
+  existingSecret: postgres-secret
+  secretKeys:
+    postgresPassword: postgres-password
+    password: password
 
 primary:
   persistence:

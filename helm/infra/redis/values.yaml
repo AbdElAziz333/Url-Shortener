@@ -3,12 +3,14 @@ architecture: standalone
 
 auth:
   enabled: true
-  # password: app333
+  existingSecret: redis-secret
+  secretKeys:
+    password: password
   acl:
     enabled: true
     users:
       - username: app
-        # password: app333
+        password: user-password
         enabled: "on"
         commands: "+@all"
         keys: "~*"
