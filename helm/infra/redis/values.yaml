@@ -4,8 +4,7 @@ architecture: standalone
 auth:
   enabled: true
   existingSecret: redis-secret
-  secretKeys:
-    password: password
+  existingSecretPasswordKey: password
   acl:
     enabled: true
     users:
