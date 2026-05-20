@@ -6,7 +6,7 @@ auth:
   rootUser: az
   existingSecret: mongo-secret
   secretKeys:
-    rootPassword: password
+    rootPassword: root-password
 
 persistence:
   enabled: true

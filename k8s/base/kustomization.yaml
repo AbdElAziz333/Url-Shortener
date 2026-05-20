@@ -5,7 +5,9 @@ namespace: url-shortener
 
 resources:
   - namespace.yaml
-  - sealed-secrets-controller.yaml
+  - postgres-sealed-secret.yaml
+  - mongo-sealed-secret.yaml
+  - redis-sealed-secret.yaml
   - kafka-topics-job.yaml
   - gateway/deployment.yaml
   - gateway/service.yaml

@@ -1,9 +1,5 @@
 fullnameOverride: kafka
 
-image:
-  repository: bitnamilegacy/kafka
-  tag: 4.0.0-debian-12-r10
-  
 controller:
   replicaCount: 1
   persistence:
