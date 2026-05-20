@@ -8,6 +8,7 @@ spec:
   sources:
     - repoURL: https://charts.bitnami.com/bitnami
       chart: postgresql
+      targetRevision: 15.5.0
       helm:
         valueFiles:
           - $values/helm/infra/postgres/values.yaml

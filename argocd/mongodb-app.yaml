@@ -8,6 +8,7 @@ spec:
   sources:
     - repoURL: https://charts.bitnami.com/bitnami
       chart: mongodb
+      targetRevision: 13.18.0
       helm:
         valueFiles:
           - $values/helm/infra/mongo/values.yaml
