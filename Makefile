@@ -26,19 +26,21 @@ migrate_analytics:
 # Docker
 
 docker_build_gateway:
-	cd gateway && docker build -t aziz-dev/gateway .
+	cd gateway && docker build -t abdelaziz333/gateway:${APP_VERSION} .
 
 docker_build_shortener:
-	cd shortener && docker build -t aziz-dev/shortener .
+	cd shortener && docker build -t abdelaziz333/shortener:${APP_VERSION} .
 
 docker_build_redirect:
-	cd redirect && docker build -t aziz-dev/redirect .
+	cd redirect && docker build -t abdelaziz333/redirect:${APP_VERSION} .
 
 docker_build_analytics:
-	cd analytics && docker build -t aziz-dev/analytics .
+	cd analytics && docker build -t abdelaziz333/analytics:${APP_VERSION} .
 
 docker_build_all:
 	docker compose build gateway shortener redirect analytics
+
+build_each_separately: docker_build_gateway docker_build_shortener docker_build_redirect docker_build_analytics
 
 docker_up:
 	docker compose up -d

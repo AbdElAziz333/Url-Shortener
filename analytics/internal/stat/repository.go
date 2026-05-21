@@ -7,27 +7,24 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"gorm.io/gorm"
-
-	"aziz.dev/analytics/internal/kafka"
 )
 
 type Repository interface {
 	GetTotalClicks(ctx context.Context, code string) ([]Dto, error)
 	GetGeo(ctx context.Context, code string) ([]Dto, error)
 	GetReferrers(ctx context.Context, code string) ([]Dto, error)
+	SaveClickEvent(ctx context.Context, event map[string]any) error
 }
 
 type repository struct {
 	db            *gorm.DB
 	mongoClient   *mongo.Client
-	kafkaConsumer *kafka.Consumer
 }
 
-func NewRepository(db *gorm.DB, mongoClient *mongo.Client, kafkaConsumer *kafka.Consumer) Repository {
+func NewRepository(db *gorm.DB, mongoClient *mongo.Client) Repository {
 	return &repository{
 		db:            db,
 		mongoClient:   mongoClient,
-		kafkaConsumer: kafkaConsumer,
 	}
 }
 
@@ -119,4 +116,32 @@ func (r *repository) GetReferrers(ctx context.Context, code string) ([]Dto, erro
 		return nil, err
 	}
 	return out, nil
+}
+
+func (r *repository) SaveClickEvent(ctx context.Context, event map[string]any) error {
+	// 1. Insert raw event into MongoDB for Geo and Referrer stats
+	const dbName = "analytics"
+	const collectionName = "click_events"
+	coll := r.mongoClient.Database(dbName).Collection(collectionName)
+	if _, err := coll.InsertOne(ctx, event); err != nil {
+		// Log but don't fail immediately, try to do postgres
+		// log.Printf("warn: failed to insert into mongo: %v", err)
+	}
+
+	// 2. Extract code to update daily stats in PostgreSQL
+	code, ok := event["code"].(string)
+	if !ok || code == "" {
+		return nil // if there's no code, we can't update LinkStatsDaily
+	}
+
+	// Upsert to LinkStatsDaily (for total clicks) - assumes date is just today
+	// This is a basic implementation to increment clicks
+	err := r.db.WithContext(ctx).Exec(`
+		INSERT INTO link_stats_daily (id, link_code, date, click_count)
+		VALUES (gen_random_uuid(), ?, CURRENT_DATE, 1)
+		ON CONFLICT (link_code, date) DO UPDATE 
+		SET click_count = link_stats_daily.click_count + 1
+	`, code).Error
+
+	return err
 }

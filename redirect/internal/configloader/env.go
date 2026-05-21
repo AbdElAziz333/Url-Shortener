@@ -1,6 +1,7 @@
 package configloader
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -11,68 +12,75 @@ import (
 )
 
 func LoadFromEnv() (*config.AppConfig, error) {
-	appEnv := os.Getenv("APP_ENV")
-	if appEnv == "local" || appEnv == "" {
-		_, filename, _, ok := runtime.Caller(0)
-		if ok {
-			dir := filepath.Dir(filename)
-			envPath := filepath.Join(dir, "..", "..", ".env")
-			_ = godotenv.Load(envPath)
-		} else {
-			_ = godotenv.Load("shortener/.env")
-		}
+	if appEnv := os.Getenv("APP_ENV"); appEnv == "local" || appEnv == "" {
+		loadDotEnv()
 	}
-
-	serviceName := os.Getenv("SERVICE_NAME")
-	servicePort := os.Getenv("SERVICE_PORT")
-
-	// postgres
-	postgresHost := os.Getenv("POSTGRES_HOST")
-	postgresUser := os.Getenv("POSTGRES_USER")
-	postgresPassword := os.Getenv("POSTGRES_PASSWORD")
-	postgresDB := os.Getenv("POSTGRES_DB")
-
-	// redis
-	redisAddr := os.Getenv("REDIS_ADDR")
-	redisUser := os.Getenv("REDIS_USER")
-	redisPassword := os.Getenv("REDIS_PASSWORD")
-
-	//kafka
-	kafkaBrokers := os.Getenv("KAFKA_BROKERS")
-	kafkaProducerTopic := os.Getenv("KAFKA_PRODUCER_TOPIC")
-	kafkaGroupID := os.Getenv("KAFKA_GROUP_ID")
-
-	// comma-separated topics from single env var
-	consumerTopicsRaw := os.Getenv("KAFKA_CONSUMER_TOPICS")
-	var kafkaConsumerTopics []string
-
-	for _, t := range strings.Split(consumerTopicsRaw, ",") {
-		if t = strings.TrimSpace(t); t != "" {
-			kafkaConsumerTopics = append(kafkaConsumerTopics, t)
-		}
-	}
-
-	return &config.AppConfig{
+ 
+	cfg := &config.AppConfig{
 		Service: config.ServiceConfig{
-			Name: serviceName,
-			Port: servicePort,
+			Name: requireEnv("SERVICE_NAME"),
+			Port: requireEnv("SERVICE_PORT"),
 		},
 		Postgres: config.PostgresConfig{
-			Host: postgresHost,
-			User: postgresUser,
-			Password: postgresPassword,
-			DBName: postgresDB,
+			Host:     requireEnv("POSTGRES_HOST"),
+			User:     requireEnv("POSTGRES_USER"),
+			Password: requireEnv("POSTGRES_PASSWORD"),
+			DBName:   requireEnv("POSTGRES_DB"),
 		},
 		Redis: config.RedisConfig{
-			Addr: redisAddr,
-			User: redisUser,
-			Password: redisPassword,
+			Addr:     requireEnv("REDIS_ADDR"),
+			User:     os.Getenv("REDIS_USER"),     // optional
+			Password: os.Getenv("REDIS_PASSWORD"), // optional
 		},
 		Kafka: config.KafkaConfig{
-			Brokers:  []string{kafkaBrokers},
-			ConsumerTopics: kafkaConsumerTopics,
-			ProducerTopic: kafkaProducerTopic,
-			GroupID: kafkaGroupID,
+			// KAFKA_BROKERS accepts a comma-separated list, e.g. "b1:9092,b2:9092"
+			Brokers: splitBrokers(os.Getenv("KAFKA_BROKERS")),
+			GroupID: os.Getenv("KAFKA_GROUP_ID"),
 		},
-	}, nil
+	}
+ 
+	if err := cfg.Validate(); err != nil {
+		return nil, fmt.Errorf("config: %w", err)
+	}
+ 
+	return cfg, nil
+}
+
+// loadDotEnv attempts to find and load a .env file relative to the source
+// file's location (useful during local development). Failure is silent because
+// the variables may already be exported in the shell.
+func loadDotEnv() {
+	_, filename, _, ok := runtime.Caller(0)
+	if ok {
+		envPath := filepath.Join(filepath.Dir(filename), "..", "..", ".env")
+		_ = godotenv.Load(envPath)
+		return
+	}
+	_ = godotenv.Load("shortener/.env")
+}
+
+// requireEnv returns the value of key or panics with a descriptive message.
+// A missing required variable is a programming/deployment error, not a
+// recoverable one, so early failure is appropriate.
+func requireEnv(key string) string {
+	v := os.Getenv(key)
+	if v == "" {
+		// Return empty — Validate() on the config struct will surface the error
+		// in a single consolidated pass rather than one panic per missing var.
+	}
+	return v
+}
+ 
+func splitBrokers(raw string) []string {
+	if raw == "" {
+		return nil
+	}
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if b := strings.TrimSpace(p); b != "" {
+			out = append(out, b)
+		}
+	}
+	return out
 }

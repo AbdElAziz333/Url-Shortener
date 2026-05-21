@@ -7,9 +7,18 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
-
-	"aziz.dev/redirect/internal/kafka"
 )
+
+var ErrLinkInactive = errors.New("link is not active or expired")
+
+type RedisClient interface {
+	Get(ctx context.Context, key string) *redis.StringCmd
+	Set(ctx context.Context, key string, value any, expiration time.Duration) *redis.StatusCmd
+}
+
+type KafkaProducer interface {
+	SendEvent(ctx context.Context, topic string, message map[string]any) error
+}
 
 type Service interface {
 	ResolveCode(ctx context.Context, code string) (*Dto, error)
@@ -17,61 +26,59 @@ type Service interface {
 
 type service struct {
 	repo       Repository
-	redisClient *redis.Client
-	kafkaProducer *kafka.Producer
+	cache RedisClient
+	kafkaProducer KafkaProducer
 }
 
-func NewService(repo Repository, redisClient *redis.Client, kafkaProducer *kafka.Producer) Service {
+func NewService(repo Repository, cache RedisClient, kafkaProducer KafkaProducer) Service {
 	return &service{
-		repo:       repo,
-		redisClient: redisClient,
+		repo:          repo,
+		cache:         cache,
 		kafkaProducer: kafkaProducer,
 	}
 }
 
 func (s *service) ResolveCode(ctx context.Context, code string) (*Dto, error) {
-	// look up the code in Redis cache (L1)
-	cache, err := s.redisClient.Get(ctx, code).Result()
-	if err == nil && cache != "" {
-		// TODO: Return the link
-		return &Dto{
-			Code: code,
-			OriginalURL: cache,
-		}, nil
+	// L1: Redis cache
+	if url, err := s.cache.Get(ctx, code).Result(); err == nil && url != "" {
+		return &Dto{Code: code, OriginalURL: url}, nil
 	}
 
-	// fallback to the database if cache miss
+	// L2: database
 	link, err := s.repo.Find(ctx, code)
 	if err != nil {
 		return nil, err
 	}
 
-	// validate the url isn't expired or disabled
-	if !link.IsActive || link.ExpiresAt.Before(time.Now()) {
-		return nil, errors.New("link is not active or expired")
+	// Validate: must be active and not past its expiry.
+	if !link.IsActive || (link.ExpiresAt != nil && link.ExpiresAt.Before(time.Now())) {
+		return nil, ErrLinkInactive
 	}
 		
-	// Write a fire-and-forget event for this click to kafka without waiting for a response 
-	// so it never slows down the redirect
-    // Fire-and-forget analytics
+	// Fire-and-forget analytics — must not slow down the redirect.
+	// A detached background context is intentional: the HTTP request context
+	// may be cancelled before the goroutine runs.
 	go func() {
-		if err := s.kafkaProducer.SendEvent(ctx, "url-clicked", map[string]any{
-			"code":        link.Code,
+		bgCtx := context.Background()
+		if err := s.kafkaProducer.SendEvent(bgCtx, "url-clicked", map[string]any{
+			"code":         link.Code,
 			"original_url": link.OriginalURL,
-			"user_id":     link.UserID,
-			"clicked_at":  time.Now(),
+			"user_id":      link.UserID,
+			"clicked_at":   time.Now().UTC(),
 		}); err != nil {
 			log.Printf("warn: failed to send click event for code %s: %v", code, err)
 		}
 	}()
 
-	// store it to redis
-	ttl := time.Until(*link.ExpiresAt)
-	if ttl > 0 {
-		s.redisClient.Set(ctx, code, link.OriginalURL, ttl)
+	// Write-back to cache with a TTL that matches the link's remaining lifetime.
+	if link.ExpiresAt != nil {
+		if ttl := time.Until(*link.ExpiresAt); ttl > 0 {
+			// Best-effort — a cache write failure must never break the redirect.
+			if err := s.cache.Set(ctx, code, link.OriginalURL, ttl).Err(); err != nil {
+				log.Printf("warn: failed to cache code %s: %v", code, err)
+			}
+		}
 	}
-
-	// increment counter 
 
 	return &Dto{
 		Code:        link.Code,

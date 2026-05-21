@@ -27,12 +27,21 @@ func main() {
 		panic(err)
 	}
 
-	kafkaConsumer, err := kafka.NewConsumer(context.Background(), &config.Kafka)
+	clickConsumer, err := kafka.NewConsumer(context.Background(), &config.Kafka, kafka.TopicRedirectsResolved)
 	if err != nil {
 		panic(err)
 	}
 
-	statRepository := stat.NewRepository(postgresDB, mongoClient, kafkaConsumer)
+	failConsumer, err := kafka.NewConsumer(context.Background(), &config.Kafka, kafka.TopicRedirectsFailed)
+	if err != nil {
+		panic(err)
+	}
+
+	statRepository := stat.NewRepository(postgresDB, mongoClient)
+
+	go clickConsumer.Ingest(context.Background(), statRepository)
+	go failConsumer.Ingest(context.Background(), statRepository)
+
 	statService := stat.NewService(statRepository)
 	statHandler := stat.NewHandler(statService)
 

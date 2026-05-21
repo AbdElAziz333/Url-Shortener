@@ -13,16 +13,13 @@ create_topic() {
   echo "Topic '$1' ready"
 }
 
-create_topic "url-created"
-create_topic "url-clicked"
+create_topic "urls.created"
+create_topic "urls.deleted"
 
-create_topic "url-shortener.urls.created"
-create_topic "url-shortener.urls.deleted"
+create_topic "redirects.requested"
+create_topic "redirects.resolved"
+create_topic "redirects.failed"
 
-create_topic "url-shortener.redirects.requested"
-create_topic "url-shortener.redirects.resolved"
-create_topic "url-shortener.redirects.failed"
-
-create_topic "url-shortener.analytics.aggregated"
+create_topic "analytics.aggregated"
 
 echo "All topics created!"

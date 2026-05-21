@@ -4,7 +4,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 
 	"aziz.dev/analytics/internal/config"
 	"github.com/joho/godotenv"
@@ -37,18 +36,7 @@ func LoadFromEnv() (*config.AppConfig, error) {
 
 	// kafka
 	kafkaBrokers := os.Getenv("KAFKA_BROKERS")
-	kafkaProducerTopic := os.Getenv("KAFKA_PRODUCER_TOPIC")
 	kafkaGroupID := os.Getenv("KAFKA_GROUP_ID")
-
-	// comma-separated from single env var
-	kafkaConsumerTopicsRaw := os.Getenv("KAFKA_CONSUMER_TOPICS")
-	var kafkaConsumerTopics []string
-
-	for _, t := range strings.Split(kafkaConsumerTopicsRaw, ",") {
-		if t = strings.TrimSpace(t); t != "" {
-			kafkaConsumerTopics = append(kafkaConsumerTopics, t)
-		}
-	}
 
 	return &config.AppConfig{
 		Service: config.ServiceConfig{
@@ -66,8 +54,6 @@ func LoadFromEnv() (*config.AppConfig, error) {
 		},
 		Kafka: config.KafkaConfig{
 			Brokers:  []string{kafkaBrokers},
-			ConsumerTopics: kafkaConsumerTopics,
-			ProducerTopic: kafkaProducerTopic,
 			GroupID: kafkaGroupID,
 		},
 	}, nil

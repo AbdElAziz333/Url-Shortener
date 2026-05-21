@@ -1,6 +1,7 @@
 package resolve
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -32,6 +33,11 @@ func (h *Handler) ResolveCode(c *gin.Context) {
 
 	redirect, err := h.service.ResolveCode(c.Request.Context(), code)
 	if err != nil {
+		if errors.Is(err, ErrLinkInactive) {
+			c.JSON(http.StatusGone, gin.H{"error": err.Error()})
+			return			
+		}
+		
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}

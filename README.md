@@ -8,6 +8,8 @@ Diagrams:
 ### Infrastructure:
 [Infrastructure Repository](https://github.com/AbdElAziz333/url-shortener-infra)
 
+[GitOps Repository](https://github.com/AbdElAziz333/url-shortener-gitops)
+
 ## Vault
 ## Kafka
 ## Observability & Monitoring (Prometheus & Grafana)
