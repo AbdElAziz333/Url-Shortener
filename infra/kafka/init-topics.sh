@@ -4,7 +4,7 @@ set -e
 BOOTSTRAP="kafka:9092"
 
 create_topic() {
-  /opt/bitnami/kafka/bin/kafka-topics.sh \
+  /opt/kafka/bin/kafka-topics.sh \
     --bootstrap-server "$BOOTSTRAP" \
     --create --if-not-exists \
     --topic "$1" \
