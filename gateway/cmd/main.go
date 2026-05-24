@@ -25,6 +25,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	middleware.StartDBStatsTracking(postgresDB, "gateway")
 
 	redisClient, err := redis.NewClient(context.Background(), &config.Redis)
 	if err != nil {

@@ -5,6 +5,7 @@ import (
 
 	"aziz.dev/analytics/internal/configloader"
 	"aziz.dev/analytics/internal/kafka"
+	"aziz.dev/analytics/internal/middleware"
 	"aziz.dev/analytics/internal/mongo"
 	"aziz.dev/analytics/internal/postgres"
 	"aziz.dev/analytics/internal/server"
@@ -21,6 +22,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	middleware.StartDBStatsTracking(postgresDB, "analytics")
 
 	mongoClient, err := mongo.NewClient(&config.Mongo)
 	if err != nil {

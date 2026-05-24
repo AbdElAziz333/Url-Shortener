@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"aziz.dev/analytics/internal/config"
+	"aziz.dev/analytics/internal/middleware"
 	"github.com/segmentio/kafka-go"
 )
 
@@ -25,6 +26,7 @@ type IngestRepository interface {
 
 type Consumer struct {
 	reader *kafka.Reader
+	topic  string
 }
 
 func NewConsumer(ctx context.Context, cfg *config.KafkaConfig, topic string) (*Consumer, error) {
@@ -45,6 +47,7 @@ func NewConsumer(ctx context.Context, cfg *config.KafkaConfig, topic string) (*C
 	
 	return &Consumer{
 		reader: reader,
+		topic:  topic,
 	}, nil
 }
 
@@ -67,13 +70,29 @@ func (c *Consumer) ReadEvent(ctx context.Context) (map[string]any, error) {
 }
 
 func (c *Consumer) Ingest(ctx context.Context, repo IngestRepository) {
-    for {
-        event, err := c.ReadEvent(ctx)
-        if err != nil {
-            if ctx.Err() != nil { return } // shutdown
-            log.Printf("kafka read error: %v", err)
-            continue
-        }
-        repo.SaveClickEvent(ctx, event)
-    }
+	for {
+		start := time.Now()
+		event, err := c.ReadEvent(ctx)
+		if err != nil {
+			if ctx.Err() != nil {
+				return // shutdown
+			}
+			log.Printf("kafka read error: %v", err)
+			middleware.AnalyticsProcessingFailuresTotal.WithLabelValues("kafka_read_error").Inc()
+			continue
+		}
+
+		err = repo.SaveClickEvent(ctx, event)
+		duration := time.Since(start).Seconds()
+
+		if err != nil {
+			middleware.AnalyticsProcessingFailuresTotal.WithLabelValues("save_error").Inc()
+		} else {
+			middleware.AnalyticsProcessingDuration.WithLabelValues(c.topic).Observe(duration)
+		}
+
+		// Update queue lag stats
+		stats := c.reader.Stats()
+		middleware.AnalyticsEventsQueueDepth.WithLabelValues(c.topic).Set(float64(stats.Lag))
+	}
 }

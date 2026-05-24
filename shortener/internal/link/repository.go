@@ -2,7 +2,9 @@ package link
 
 import (
 	"context"
+	"time"
 
+	"aziz.dev/shortener/internal/middleware"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -41,13 +43,17 @@ func (r *repository) FindByCodeAndUserID(ctx context.Context, code string, userI
 }
 
 func (r *repository) Create(ctx context.Context, link *Link) error {
-	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	start := time.Now()
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(link).Error; err != nil {
 			return err
 		}
 
 		return nil
 	})
+	duration := time.Since(start).Seconds()
+	middleware.DbWriteDuration.WithLabelValues("insert").Observe(duration)
+	return err
 }
 
 func (r *repository) Update(ctx context.Context, link *Link) error {

@@ -5,6 +5,7 @@ import (
 
 	"aziz.dev/redirect/internal/configloader"
 	"aziz.dev/redirect/internal/kafka"
+	"aziz.dev/redirect/internal/middleware"
 	"aziz.dev/redirect/internal/postgres"
 	"aziz.dev/redirect/internal/redis"
 	"aziz.dev/redirect/internal/resolve"
@@ -21,6 +22,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	middleware.StartDBStatsTracking(postgresDB, "redirect")
 
 	redisClient, err := redis.NewClient(context.Background(), &config.Redis)
 	if err != nil {

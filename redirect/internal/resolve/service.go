@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"aziz.dev/redirect/internal/middleware"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -25,8 +26,8 @@ type Service interface {
 }
 
 type service struct {
-	repo       Repository
-	cache RedisClient
+	repo          Repository
+	cache         RedisClient
 	kafkaProducer KafkaProducer
 }
 
@@ -40,13 +41,30 @@ func NewService(repo Repository, cache RedisClient, kafkaProducer KafkaProducer)
 
 func (s *service) ResolveCode(ctx context.Context, code string) (*Dto, error) {
 	// L1: Redis cache
-	if url, err := s.cache.Get(ctx, code).Result(); err == nil && url != "" {
+	startCache := time.Now()
+	url, err := s.cache.Get(ctx, code).Result()
+	durationCache := time.Since(startCache).Seconds()
+	middleware.RedirectLookupDuration.WithLabelValues("cache").Observe(durationCache)
+
+	if err == nil && url != "" {
+		middleware.RedirectCacheHitsTotal.WithLabelValues("hit").Inc()
 		return &Dto{Code: code, OriginalURL: url}, nil
 	}
 
+	if err == redis.Nil || url == "" {
+		middleware.RedirectCacheHitsTotal.WithLabelValues("miss").Inc()
+	}
+
 	// L2: database
+	startDB := time.Now()
 	link, err := s.repo.Find(ctx, code)
+	durationDB := time.Since(startDB).Seconds()
+	middleware.RedirectLookupDuration.WithLabelValues("database").Observe(durationDB)
+
 	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			middleware.RedirectNotFoundTotal.Inc()
+		}
 		return nil, err
 	}
 

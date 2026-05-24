@@ -5,8 +5,10 @@ import (
 	"crypto/rand"
 	"errors"
 	"math/big"
+	"strings"
 	"time"
 
+	"aziz.dev/shortener/internal/middleware"
 	"github.com/google/uuid"
 )
 
@@ -49,6 +51,7 @@ func (s *service) Create(ctx context.Context, userID uuid.UUID, req CreateReques
 		code, err = generateRandomCode(8)
 
 		if err != nil {
+			middleware.UrlsCreatedTotal.WithLabelValues("failure").Inc()
 			return nil, err
 		}
 	}
@@ -64,8 +67,14 @@ func (s *service) Create(ctx context.Context, userID uuid.UUID, req CreateReques
 	}
 
 	if err := s.repo.Create(ctx, link); err != nil {
+		middleware.UrlsCreatedTotal.WithLabelValues("failure").Inc()
+		if req.CustomAlias == "" && (strings.Contains(err.Error(), "duplicate key") || strings.Contains(err.Error(), "23505")) {
+			middleware.HashCollisionsTotal.Inc()
+		}
 		return nil, err
 	}
+
+	middleware.UrlsCreatedTotal.WithLabelValues("success").Inc()
 
 	return &Dto{
 		Code:        link.Code,
