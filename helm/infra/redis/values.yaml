@@ -5,15 +5,6 @@ auth:
   enabled: true
   existingSecret: redis-secret
   existingSecretPasswordKey: password
-  acl:
-    enabled: true
-    users:
-      - username: app
-        password: user-password
-        enabled: "on"
-        commands: "+@all"
-        keys: "~*"
-        channels: "&*"
 
 master:
   persistence:

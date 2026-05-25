@@ -25,6 +25,22 @@ networkPolicy:
 
 metrics:
   enabled: true
+  extraFlags: "--compatible-mode"
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "250m"
+      memory: "256Mi"
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 30
+    timeoutSeconds: 10
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 15
+    timeoutSeconds: 10
   serviceMonitor:
     enabled: true
     additionalLabels:
