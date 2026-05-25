@@ -31,3 +31,10 @@ primary:
         GRANT ALL PRIVILEGES ON DATABASE gateway TO "aziz";
         GRANT ALL PRIVILEGES ON DATABASE shortener TO "aziz";
         GRANT ALL PRIVILEGES ON DATABASE analytics TO "aziz";
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    additionalLabels:
+      release: prometheus

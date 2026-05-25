@@ -22,3 +22,10 @@ resources:
 
 networkPolicy:
   enabled: false
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    additionalLabels:
+      release: prometheus

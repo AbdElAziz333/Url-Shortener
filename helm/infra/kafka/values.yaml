@@ -32,3 +32,13 @@ listeners:
 
 networkPolicy:
   enabled: false
+
+metrics:
+  kafka:
+    enabled: true
+  jmx:
+    enabled: true
+  serviceMonitor:
+    enabled: true
+    additionalLabels:
+      release: prometheus
