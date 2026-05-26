@@ -1,6 +1,20 @@
 fullnameOverride: mongo
 architecture: standalone
 
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 40
+  periodSeconds: 20
+  timeoutSeconds: 10
+  failureThreshold: 6
+
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 30
+  periodSeconds: 20
+  timeoutSeconds: 10
+  failureThreshold: 6
+
 auth:
   enabled: true
   rootUser: az
@@ -14,10 +28,10 @@ persistence:
 
 resources:
   requests:
-    cpu: "250m"
+    cpu: "500m"
     memory: "512Mi"
   limits:
-    cpu: "500m"
+    cpu: "1000m"
     memory: "1Gi"
 
 networkPolicy:
