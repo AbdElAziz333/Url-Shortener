@@ -56,6 +56,16 @@ grafana:
     size: 5Gi
   service:
     type: LoadBalancer
+  readinessProbe:
+    initialDelaySeconds: 60
+    timeoutSeconds: 5
+    periodSeconds: 10
+    failureThreshold: 6
+  livenessProbe:
+    initialDelaySeconds: 120
+    timeoutSeconds: 5
+    periodSeconds: 15
+    failureThreshold: 10
 
 alertmanager:
   enabled: false
