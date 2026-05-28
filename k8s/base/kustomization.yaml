@@ -8,7 +8,7 @@ resources:
   - postgres-sealed-secret.yaml
   - mongo-sealed-secret.yaml
   - redis-sealed-secret.yaml
-  - kafka-topics-job.yaml
+  # - kafka-topics-job.yaml
   - gateway/deployment.yaml
   - gateway/service.yaml
   - gateway/configmap.yaml

@@ -5,16 +5,10 @@ metadata:
   namespace: argocd
 spec:
   project: default
-  sources:
-    - repoURL: https://strimzi.io/charts
-      chart: kafka
-      targetRevision: 1.0.0
-      helm:
-        valueFiles:
-          - $values/helm/infra/kafka/values.yaml
-    - repoURL: https://github.com/AbdElAziz333/url-shortener-gitops.git
-      targetRevision: HEAD
-      ref: values
+  source:
+    repoURL: https://github.com/AbdElAziz333/url-shortener-gitops.git
+    targetRevision: HEAD
+    path: helm/infra/kafka     # ArgoCD applies all YAMLs in this folder
   destination:
     server: https://kubernetes.default.svc
     namespace: url-shortener
