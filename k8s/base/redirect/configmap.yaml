@@ -14,7 +14,7 @@ data:
   POSTGRES_HOST: "postgres"
   POSTGRES_DB: "shortener"
   POSTGRES_USER: "aziz"
-  REDIS_ADDR: "redis-master:6379"
+  REDIS_ADDR: "redis:6379"
   REDIS_USER: "app"
   KAFKA_BROKERS: "kafka:9092"
   KAFKA_GROUP_ID: "redirect-service"
