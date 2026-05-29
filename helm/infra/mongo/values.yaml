@@ -38,6 +38,12 @@ networkPolicy:
 metrics:
   enabled: true
   extraFlags: "--compatible-mode"
+  
+  auth:
+    enabled: true
+    username: az
+    existingSecret: mongo-secret
+    secretUserKey: mongodb-root-password
 
   resources:
     requests:
