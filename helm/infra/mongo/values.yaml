@@ -19,6 +19,8 @@ auth:
   enabled: true
   rootUser: az
   existingSecret: mongo-secret
+  secretKeys:
+    adminPasswordKey: mongodb-root-password
 
 persistence:
   enabled: true
@@ -39,10 +41,10 @@ metrics:
   enabled: true
   compatibleMode: true
 
-  username: "az" 
-  
+  username: "az"
+
   existingSecret: "mongo-secret"
-  secretUserKey: "mongodb-root-password"
+  existingSecretPasswordKey: "mongodb-metrics-password"
 
   resources:
     requests:
