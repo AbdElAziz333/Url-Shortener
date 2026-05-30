@@ -3,12 +3,14 @@ kind: Application
 metadata:
   name: kafka
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   project: default
   source:
     repoURL: https://github.com/AbdElAziz333/url-shortener-gitops.git
     targetRevision: HEAD
-    path: helm/infra/kafka     # ArgoCD applies all YAMLs in this folder
+    path: helm/infra/kafka
   destination:
     server: https://kubernetes.default.svc
     namespace: url-shortener

@@ -18,7 +18,7 @@ spec:
       restartPolicy: OnFailure
       containers:
         - name: init-topics
-          image: docker.io/bitnami/kafka:4.0.0-debian-12-r10
+          image: docker.io/bitnami/kafka:3.8.0
           imagePullPolicy: IfNotPresent
           command:
             - /bin/bash
@@ -26,12 +26,12 @@ spec:
             - |
               BOOTSTRAP="${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}"
               TOPICS=(
-                url-shortener.urls.created
-                url-shortener.urls.deleted
-                url-shortener.redirects.requested
-                url-shortener.redirects.resolved
-                url-shortener.redirects.failed
-                url-shortener.analytics.aggregated
+                urls.created
+                urls.deleted
+                redirects.requested
+                redirects.resolved
+                redirects.failed
+                analytics.aggregated
               )
               for t in "${TOPICS[@]}"; do
                 /opt/bitnami/kafka/bin/kafka-topics.sh \
