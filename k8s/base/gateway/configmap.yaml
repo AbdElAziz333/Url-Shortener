@@ -18,6 +18,6 @@ data:
   POSTGRES_DB: "gateway"
   POSTGRES_USER: "aziz"
   REDIS_ADDR: "redis-master:6379"
-  REDIS_USER: "app"
+  REDIS_USER: "default"
   JWT_ACCESS_EXPIRY: "15m"
   JWT_REFRESH_EXPIRY: "168h"
