@@ -1,2 +1,2 @@
 watchNamespaces:
-  - "*"
+  - "url-shortener"
