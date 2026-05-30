@@ -54,6 +54,7 @@ grafana:
   persistence:
     enabled: true
     size: 5Gi
+    storageClassName: standard
   service:
     type: LoadBalancer
   readinessProbe:
