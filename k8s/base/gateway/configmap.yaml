@@ -17,7 +17,7 @@ data:
   POSTGRES_HOST: "postgres"
   POSTGRES_DB: "gateway"
   POSTGRES_USER: "aziz"
-  REDIS_ADDR: "redis:6379"
+  REDIS_ADDR: "redis-master:6379"
   REDIS_USER: "app"
   JWT_ACCESS_EXPIRY: "15m"
   JWT_REFRESH_EXPIRY: "168h"
