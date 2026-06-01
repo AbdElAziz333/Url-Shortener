@@ -96,17 +96,6 @@ func (s *service) UpdateExpiry(ctx context.Context, userID uuid.UUID, code strin
 	return s.repo.Update(ctx, link)
 }
 
-// func (s *service) UpdateCustomAlias(ctx context.Context, userID uuid.UUID, code string, req UpdateAliasDto) error {
-// 	link, err := s.repo.FindByCodeAndUserID(ctx, code, userID)
-// 	if err != nil {
-// 		return errors.New("link not found or unauthorized")
-// 	}
-
-// 	link.CustomAlias = req.CustomAlias
-// 	link.Code = req.CustomAlias // Changing the code as well since alias acts as code
-// 	return s.repo.UpdateWithOutbox(ctx, link, nil)
-// }
-
 func (s *service) Delete(ctx context.Context, userID uuid.UUID, code string) error {
 	link, err := s.repo.FindByCodeAndUserID(ctx, code, userID)
 	if err != nil {
