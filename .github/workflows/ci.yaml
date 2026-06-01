@@ -44,6 +44,9 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache-dependency-path: ${{ matrix.service }}/go.sum
 
+      - name: Clean Go Cache
+        run: go clean -testcache -cache
+
       - name: Run Unit Tests
         run: |
           go test ./... -run "Unit" -v -count=1 -coverprofile=coverage.out -covermode=atomic
