@@ -68,10 +68,10 @@ docker_run_infra:
 	docker compose -f docker-compose.infra.yaml --profile all up
 
 docker_up:
-	docker compose up -d
+	docker compose --profile all up -d
 
 docker_down:
-	docker compose down
+	docker compose --profile all down
 
 docker_up_infra:
 	docker compose -f docker-compose.infra.yaml up -d
