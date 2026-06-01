@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'gateway/**'
+      - 'shortener/**'
+      - 'redirect/**'
+      - 'analytics/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'gateway/**'
+      - 'shortener/**'
+      - 'redirect/**'
+      - 'analytics/**'
+
+env:
+  GO_VERSION: "1.23"
+
+jobs:
+  test:
+    name: Test – ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [gateway, shortener, redirect, analytics]
+
+    defaults:
+      run:
+        working-directory: ${{ matrix.service }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: ${{ matrix.service }}/go.sum
+
+      - name: Run Unit Tests
+        run: |
+          go test ./... -run "Unit" -v -count=1 -coverprofile=coverage.out -covermode=atomic
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.service }}
+          path: ${{ matrix.service }}/coverage.out
+          retention-days: 7
+
+      - name: Run Integration Tests
+        run: |
+          go test ./... -run "Integration" -v -count=1 -timeout 300s
