@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"aziz.dev/analytics/internal/config"
+	"github.com/sirupsen/logrus"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -17,9 +18,16 @@ func NewClient(ctx context.Context, cfg *config.PostgresConfig) (*gorm.DB, error
 		cfg.Password,
 		cfg.DBName,
 	)
+	
+	logrus.WithFields(logrus.Fields{
+		"host": cfg.Host,
+		"user": cfg.User,
+		"dbname": cfg.DBName,
+	}).Info("Connecting to PostgreSQL")
 		
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
+		logrus.WithError(err).Error("Failed to connect to PostgreSQL")
 		return nil, err
 	}
 

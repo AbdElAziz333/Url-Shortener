@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 type Handler struct {
@@ -31,12 +32,15 @@ func (h *Handler) RegisterRoutes(r *gin.RouterGroup) {
 func (h *Handler) GetTotalClicks(c *gin.Context) {
 	code := c.Param("code")
 	if code == "" {
+		logrus.Warn("Request to GetTotalClicks without code parameter")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "code is required"})
 		return
 	}
 
+	logrus.WithField("code", code).Debug("Handling GetTotalClicks request")
 	totalClicks, err := h.service.GetTotalClicks(c.Request.Context(), code)
 	if err != nil {
+		logrus.WithError(err).WithField("code", code).Error("Failed to get total clicks")
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
 		})
@@ -51,12 +55,15 @@ func (h *Handler) GetTotalClicks(c *gin.Context) {
 func (h *Handler) GetGeo(c *gin.Context) {
 	code := c.Param("code")
 	if code == "" {
+		logrus.Warn("Request to GetGeo without code parameter")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "code is required"})
 		return
 	}
 
+	logrus.WithField("code", code).Debug("Handling GetGeo request")
 	geo, err := h.service.GetGeo(c.Request.Context(), code)
 	if err != nil {
+		logrus.WithError(err).WithField("code", code).Error("Failed to get geo stats")
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
 		})
@@ -71,12 +78,15 @@ func (h *Handler) GetGeo(c *gin.Context) {
 func (h *Handler) GetReferrers(c *gin.Context) {
 	code := c.Param("code")
 	if code == "" {
+		logrus.Warn("Request to GetReferrers without code parameter")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "code is required"})
 		return
 	}
 
+	logrus.WithField("code", code).Debug("Handling GetReferrers request")
 	referrers, err := h.service.GetReferrers(c.Request.Context(), code)
 	if err != nil {
+		logrus.WithError(err).WithField("code", code).Error("Failed to get referrer stats")
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
 		})

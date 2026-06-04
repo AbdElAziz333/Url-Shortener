@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 )
 
 type Handler struct {
@@ -28,12 +29,14 @@ func (h *Handler) RegisterRoutes(r *gin.RouterGroup) {
 func (h *Handler) GetAll(c *gin.Context) {
 	userID, err := uuid.Parse(c.GetHeader("User-ID"))
 	if err != nil {
+		logrus.WithError(err).Warn("Invalid User-ID header")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid or missing user id"})
 		return
 	}
 
 	links, err := h.service.GetAll(c.Request.Context(), userID)
 	if err != nil {
+		logrus.WithError(err).WithField("user_id", userID).Error("Failed to get links")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
 		})
@@ -49,12 +52,14 @@ func (h *Handler) GetAll(c *gin.Context) {
 func (h *Handler) Create(c *gin.Context) {
 	userID, err := uuid.Parse(c.GetHeader("User-ID"))
 	if err != nil {
+		logrus.WithError(err).Warn("Invalid User-ID header")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid or missing user id"})
 		return
 	}
 
 	var r *CreateRequest
 	if err := c.ShouldBindJSON(&r); err != nil {
+		logrus.WithError(err).Warn("Invalid request body")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
 		})
@@ -78,6 +83,7 @@ func (h *Handler) Create(c *gin.Context) {
 func (h *Handler) UpdateExpiry(c *gin.Context) {
 	userID, err := uuid.Parse(c.GetHeader("User-ID"))
 	if err != nil {
+		logrus.WithError(err).Warn("Invalid User-ID header")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid or missing user id"})
 		return
 	}
@@ -85,6 +91,7 @@ func (h *Handler) UpdateExpiry(c *gin.Context) {
 
 	var r *UpdateExpiryDto
 	if err := c.ShouldBindJSON(&r); err != nil {
+		logrus.WithError(err).Warn("Invalid request body")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
 		})
@@ -107,6 +114,7 @@ func (h *Handler) UpdateExpiry(c *gin.Context) {
 func (h *Handler) Delete(c *gin.Context) {
 	userID, err := uuid.Parse(c.GetHeader("User-ID"))
 	if err != nil {
+		logrus.WithError(err).Warn("Invalid User-ID header")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid or missing user id"})
 		return
 	}

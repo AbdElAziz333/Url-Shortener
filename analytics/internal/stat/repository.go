@@ -3,6 +3,7 @@ package stat
 import (
 	"context"
 
+	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -17,18 +18,19 @@ type Repository interface {
 }
 
 type repository struct {
-	db            *gorm.DB
-	mongoClient   *mongo.Client
+	db          *gorm.DB
+	mongoClient *mongo.Client
 }
 
 func NewRepository(db *gorm.DB, mongoClient *mongo.Client) Repository {
 	return &repository{
-		db:            db,
-		mongoClient:   mongoClient,
+		db:          db,
+		mongoClient: mongoClient,
 	}
 }
 
 func (r *repository) GetTotalClicks(ctx context.Context, code string) ([]Dto, error) {
+	logrus.WithField("code", code).Debug("Getting total clicks")
 	var total int64
 	err := r.db.WithContext(ctx).
 		Model(&LinkStatsDaily{}).
@@ -36,6 +38,7 @@ func (r *repository) GetTotalClicks(ctx context.Context, code string) ([]Dto, er
 		Where("link_code = ?", code).
 		Scan(&total).Error
 	if err != nil {
+		logrus.WithError(err).WithField("code", code).Error("Failed to get total clicks from PostgreSQL")
 		return nil, err
 	}
 
@@ -43,6 +46,7 @@ func (r *repository) GetTotalClicks(ctx context.Context, code string) ([]Dto, er
 }
 
 func (r *repository) GetGeo(ctx context.Context, code string) ([]Dto, error) {
+	logrus.WithField("code", code).Debug("Getting geo stats")
 	// Assumes raw click events are stored in MongoDB:
 	// db: analytics, collection: click_events, fields: { code, country }
 	// If your schema differs, adjust the `dbName`, `collectionName`, and field paths.
@@ -68,18 +72,21 @@ func (r *repository) GetGeo(ctx context.Context, code string) ([]Dto, error) {
 
 	cur, err := coll.Aggregate(ctx, pipeline, options.Aggregate())
 	if err != nil {
+		logrus.WithError(err).WithField("code", code).Error("Failed to get geo stats from MongoDB")
 		return nil, err
 	}
 	defer cur.Close(ctx)
 
 	var out []Dto
 	if err := cur.All(ctx, &out); err != nil {
+		logrus.WithError(err).WithField("code", code).Error("Failed to decode geo stats from MongoDB")
 		return nil, err
 	}
 	return out, nil
 }
 
 func (r *repository) GetReferrers(ctx context.Context, code string) ([]Dto, error) {
+	logrus.WithField("code", code).Debug("Getting referrer stats")
 	// Assumes raw click events are stored in MongoDB:
 	// db: analytics, collection: click_events, fields: { code, referrer_domain | referrer }
 	// If your schema differs, adjust field paths below.
@@ -107,30 +114,33 @@ func (r *repository) GetReferrers(ctx context.Context, code string) ([]Dto, erro
 
 	cur, err := coll.Aggregate(ctx, pipeline, options.Aggregate())
 	if err != nil {
+		logrus.WithError(err).WithField("code", code).Error("Failed to get referrer stats from MongoDB")
 		return nil, err
 	}
 	defer cur.Close(ctx)
 
 	var out []Dto
 	if err := cur.All(ctx, &out); err != nil {
+		logrus.WithError(err).WithField("code", code).Error("Failed to decode referrer stats from MongoDB")
 		return nil, err
 	}
 	return out, nil
 }
 
 func (r *repository) SaveClickEvent(ctx context.Context, event map[string]any) error {
+	logrus.WithField("event", event).Debug("Saving click event")
 	// 1. Insert raw event into MongoDB for Geo and Referrer stats
 	const dbName = "analytics"
 	const collectionName = "click_events"
 	coll := r.mongoClient.Database(dbName).Collection(collectionName)
 	if _, err := coll.InsertOne(ctx, event); err != nil {
-		// Log but don't fail immediately, try to do postgres
-		// log.Printf("warn: failed to insert into mongo: %v", err)
+		logrus.WithError(err).Warn("Failed to insert click event into MongoDB")
 	}
 
 	// 2. Extract code to update daily stats in PostgreSQL
 	code, ok := event["code"].(string)
 	if !ok || code == "" {
+		logrus.Debug("No code in event, skipping PostgreSQL update")
 		return nil // if there's no code, we can't update LinkStatsDaily
 	}
 
@@ -142,6 +152,9 @@ func (r *repository) SaveClickEvent(ctx context.Context, event map[string]any) e
 		ON CONFLICT (link_code, date) DO UPDATE 
 		SET click_count = link_stats_daily.click_count + 1
 	`, code).Error
+	if err != nil {
+		logrus.WithError(err).WithField("code", code).Error("Failed to update daily stats in PostgreSQL")
+	}
 
 	return err
 }

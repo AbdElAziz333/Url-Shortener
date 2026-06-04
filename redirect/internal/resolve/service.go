@@ -3,11 +3,11 @@ package resolve
 import (
 	"context"
 	"errors"
-	"log"
 	"time"
 
 	"aziz.dev/redirect/internal/middleware"
 	"github.com/redis/go-redis/v9"
+	"github.com/sirupsen/logrus"
 )
 
 var ErrLinkInactive = errors.New("link is not active or expired")
@@ -40,6 +40,8 @@ func NewService(repo Repository, cache RedisClient, kafkaProducer KafkaProducer)
 }
 
 func (s *service) ResolveCode(ctx context.Context, code string) (*Dto, error) {
+	logrus.WithField("code", code).Info("Resolving code")
+
 	// L1: Redis cache
 	startCache := time.Now()
 	url, err := s.cache.Get(ctx, code).Result()
@@ -47,12 +49,16 @@ func (s *service) ResolveCode(ctx context.Context, code string) (*Dto, error) {
 	middleware.RedirectLookupDuration.WithLabelValues("cache").Observe(durationCache)
 
 	if err == nil && url != "" {
+		logrus.WithField("code", code).Info("Cache hit")
 		middleware.RedirectCacheHitsTotal.WithLabelValues("hit").Inc()
 		return &Dto{Code: code, OriginalURL: url}, nil
 	}
 
 	if err == redis.Nil || url == "" {
+		logrus.WithField("code", code).Info("Cache miss")
 		middleware.RedirectCacheHitsTotal.WithLabelValues("miss").Inc()
+	} else {
+		logrus.WithError(err).WithField("code", code).Warn("Cache lookup error")
 	}
 
 	// L2: database
@@ -63,13 +69,17 @@ func (s *service) ResolveCode(ctx context.Context, code string) (*Dto, error) {
 
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
+			logrus.WithField("code", code).Warn("Code not found in database")
 			middleware.RedirectNotFoundTotal.Inc()
+		} else {
+			logrus.WithError(err).WithField("code", code).Error("Database lookup error")
 		}
 		return nil, err
 	}
 
 	// Validate: must be active and not past its expiry.
 	if !link.IsActive || (link.ExpiresAt != nil && link.ExpiresAt.Before(time.Now())) {
+		logrus.WithField("code", code).Warn("Link is inactive or expired")
 		return nil, ErrLinkInactive
 	}
 		
@@ -84,7 +94,7 @@ func (s *service) ResolveCode(ctx context.Context, code string) (*Dto, error) {
 			"user_id":      link.UserID,
 			"clicked_at":   time.Now().UTC(),
 		}); err != nil {
-			log.Printf("warn: failed to send click event for code %s: %v", code, err)
+			logrus.WithError(err).WithField("code", code).Warn("Failed to send click event")
 		}
 	}()
 
@@ -93,7 +103,9 @@ func (s *service) ResolveCode(ctx context.Context, code string) (*Dto, error) {
 		if ttl := time.Until(*link.ExpiresAt); ttl > 0 {
 			// Best-effort — a cache write failure must never break the redirect.
 			if err := s.cache.Set(ctx, code, link.OriginalURL, ttl).Err(); err != nil {
-				log.Printf("warn: failed to cache code %s: %v", code, err)
+				logrus.WithError(err).WithField("code", code).Warn("Failed to write to cache")
+			} else {
+				logrus.WithField("code", code).Info("Successfully wrote to cache")
 			}
 		}
 	}

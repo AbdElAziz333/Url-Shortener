@@ -3,20 +3,20 @@ package kafka
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"time"
 
 	"aziz.dev/analytics/internal/config"
 	"aziz.dev/analytics/internal/middleware"
 	"github.com/segmentio/kafka-go"
+	"github.com/sirupsen/logrus"
 )
 
 const (
-	TopicURLsCreated = "urls.created"
-	TopicURLsDeleted = "urls.deleted"
-	TopicRedirectsRequested = "redirects.requested"
-	TopicRedirectsResolved = "redirects.resolved"
-	TopicRedirectsFailed = "redirects.failed"
+	TopicURLsCreated         = "urls.created"
+	TopicURLsDeleted         = "urls.deleted"
+	TopicRedirectsRequested  = "redirects.requested"
+	TopicRedirectsResolved   = "redirects.resolved"
+	TopicRedirectsFailed     = "redirects.failed"
 	TopicAnalyticsAggregated = "analytics.aggregated"
 )
 
@@ -30,21 +30,26 @@ type Consumer struct {
 }
 
 func NewConsumer(ctx context.Context, cfg *config.KafkaConfig, topic string) (*Consumer, error) {
-	// segmantio/kafka-go reader only supports one topic at a time.
-	// for multiple topics, either:
-	// A) run one reader goroutine per topic, or
-	// B) use a consumer group coordinator externally
-	// this is the single-reader version -- wire one per topic upstream
+	logrus.WithFields(logrus.Fields{
+		"brokers":  cfg.Brokers,
+		"group_id": cfg.GroupID,
+		"topic":    topic,
+	}).Info("Creating Kafka consumer")
+
 	reader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers: cfg.Brokers,
-		GroupID: cfg.GroupID,
-		Topic:   topic,
-		MinBytes: 1,
-		MaxBytes: 10e6,
+		Brokers:        cfg.Brokers,
+		GroupID:        cfg.GroupID,
+		Topic:          topic,
+		MinBytes:       1,
+		MaxBytes:       10e6,
 		CommitInterval: time.Second,
-		MaxWait: 15 * time.Second,
+		MaxWait:        15 * time.Second,
+		StartOffset:    kafka.LastOffset,
+		ErrorLogger: kafka.LoggerFunc(func(msg string, args ...any) {
+			logrus.Errorf("Kafka consumer error: "+msg, args...)
+		}),
 	})
-	
+
 	return &Consumer{
 		reader: reader,
 		topic:  topic,
@@ -52,6 +57,7 @@ func NewConsumer(ctx context.Context, cfg *config.KafkaConfig, topic string) (*C
 }
 
 func (c *Consumer) Close() error {
+	logrus.Infof("Closing Kafka consumer for topic: %s", c.topic)
 	return c.reader.Close()
 }
 
@@ -63,6 +69,7 @@ func (c *Consumer) ReadEvent(ctx context.Context) (map[string]any, error) {
 
 	var event map[string]any
 	if err := json.Unmarshal(msg.Value, &event); err != nil {
+		logrus.WithError(err).WithField("raw_message", string(msg.Value)).Error("Failed to unmarshal Kafka event")
 		return nil, err
 	}
 
@@ -70,15 +77,43 @@ func (c *Consumer) ReadEvent(ctx context.Context) (map[string]any, error) {
 }
 
 func (c *Consumer) Ingest(ctx context.Context, repo IngestRepository) {
+	logrus.Infof("Starting ingestion for topic: %s", c.topic)
+
+	// Add initial backoff to let Kafka group coordinator fully initialize
+	logrus.Infof("Waiting 10 seconds for Kafka group coordinator to become available for topic: %s", c.topic)
+	select {
+	case <-time.After(10 * time.Second):
+	case <-ctx.Done():
+		logrus.Info("Ingestion cancelled during initial backoff")
+		return
+	}
+
 	for {
+		select {
+		case <-ctx.Done():
+			logrus.Info("Ingestion stopped due to context cancellation")
+			return
+		default:
+		}
+
 		start := time.Now()
 		event, err := c.ReadEvent(ctx)
 		if err != nil {
 			if ctx.Err() != nil {
-				return // shutdown
+				logrus.Info("Ingestion stopped due to context cancellation")
+				return
 			}
-			log.Printf("kafka read error: %v", err)
+
+			logrus.WithError(err).WithFields(logrus.Fields{
+				"topic": c.topic,
+			}).Warn("Kafka read error, will retry in 5 seconds")
 			middleware.AnalyticsProcessingFailuresTotal.WithLabelValues("kafka_read_error").Inc()
+
+			// Backoff before retrying
+			select {
+			case <-time.After(5 * time.Second):
+			case <-ctx.Done():
+			}
 			continue
 		}
 
@@ -86,8 +121,13 @@ func (c *Consumer) Ingest(ctx context.Context, repo IngestRepository) {
 		duration := time.Since(start).Seconds()
 
 		if err != nil {
+			logrus.WithError(err).WithField("topic", c.topic).Error("Failed to save click event")
 			middleware.AnalyticsProcessingFailuresTotal.WithLabelValues("save_error").Inc()
 		} else {
+			logrus.WithFields(logrus.Fields{
+				"topic":            c.topic,
+				"duration_seconds": duration,
+			}).Debug("Successfully processed event")
 			middleware.AnalyticsProcessingDuration.WithLabelValues(c.topic).Observe(duration)
 		}
 

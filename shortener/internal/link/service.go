@@ -10,6 +10,7 @@ import (
 
 	"aziz.dev/shortener/internal/middleware"
 	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 )
 
 type Service interface {
@@ -31,8 +32,10 @@ func NewService(repo Repository) Service {
 }
 
 func (s *service) GetAll(ctx context.Context, userID uuid.UUID) ([]Dto, error) {
+	logrus.WithField("user_id", userID).Info("Fetching all links for user")
 	links, err := s.repo.FindAllByUserID(ctx, userID)
 	if err != nil {
+		logrus.WithError(err).WithField("user_id", userID).Error("Failed to fetch links")
 		return nil, err
 	}
 
@@ -41,10 +44,12 @@ func (s *service) GetAll(ctx context.Context, userID uuid.UUID) ([]Dto, error) {
 		dtos = append(dtos, mapToDto(&l))
 	}
 
+	logrus.WithField("user_id", userID).WithField("count", len(dtos)).Info("Successfully fetched links")
 	return dtos, nil
 }
 
 func (s *service) Create(ctx context.Context, userID uuid.UUID, req CreateRequest) (*Dto, error) {
+	logrus.WithField("user_id", userID).WithField("original_url", req.OriginalURL).Info("Creating new link")
 	code := req.CustomAlias
 	if code == "" {
 		var err error
@@ -52,8 +57,10 @@ func (s *service) Create(ctx context.Context, userID uuid.UUID, req CreateReques
 
 		if err != nil {
 			middleware.UrlsCreatedTotal.WithLabelValues("failure").Inc()
+			logrus.WithError(err).Error("Failed to generate random code")
 			return nil, err
 		}
+		logrus.WithField("code", code).Debug("Generated random code")
 	}
 
 	link := &Link{
@@ -70,11 +77,14 @@ func (s *service) Create(ctx context.Context, userID uuid.UUID, req CreateReques
 		middleware.UrlsCreatedTotal.WithLabelValues("failure").Inc()
 		if req.CustomAlias == "" && (strings.Contains(err.Error(), "duplicate key") || strings.Contains(err.Error(), "23505")) {
 			middleware.HashCollisionsTotal.Inc()
+			logrus.WithField("code", code).Warn("Hash collision detected")
 		}
+		logrus.WithError(err).Error("Failed to create link")
 		return nil, err
 	}
 
 	middleware.UrlsCreatedTotal.WithLabelValues("success").Inc()
+	logrus.WithField("user_id", userID).WithField("code", code).Info("Successfully created link")
 
 	return &Dto{
 		Code:        link.Code,
@@ -87,24 +97,40 @@ func (s *service) Create(ctx context.Context, userID uuid.UUID, req CreateReques
 }
 
 func (s *service) UpdateExpiry(ctx context.Context, userID uuid.UUID, code string, req UpdateExpiryDto) error {
+	logrus.WithField("user_id", userID).WithField("code", code).Info("Updating link expiry")
 	link, err := s.repo.FindByCodeAndUserID(ctx, code, userID)
 	if err != nil {
+		logrus.WithError(err).WithField("user_id", userID).WithField("code", code).Error("Failed to find link")
 		return errors.New("link not found or unauthorized")
 	}
 
 	link.ExpiresAt = req.ExpiresAt
-	return s.repo.Update(ctx, link)
+	if err := s.repo.Update(ctx, link); err != nil {
+		logrus.WithError(err).Error("Failed to update link")
+		return err
+	}
+
+	logrus.WithField("user_id", userID).WithField("code", code).Info("Successfully updated link expiry")
+	return nil
 }
 
 func (s *service) Delete(ctx context.Context, userID uuid.UUID, code string) error {
+	logrus.WithField("user_id", userID).WithField("code", code).Info("Deleting link")
 	link, err := s.repo.FindByCodeAndUserID(ctx, code, userID)
 	if err != nil {
+		logrus.WithError(err).WithField("user_id", userID).WithField("code", code).Error("Failed to find link")
 		return errors.New("link not found or unauthorized")
 	}
 
 	link.IsActive = false
 
-	return s.repo.Update(ctx, link)
+	if err := s.repo.Update(ctx, link); err != nil {
+		logrus.WithError(err).Error("Failed to delete link")
+		return err
+	}
+
+	logrus.WithField("user_id", userID).WithField("code", code).Info("Successfully deleted link")
+	return nil
 }
 
 func generateRandomCode(length int) (string, error) {

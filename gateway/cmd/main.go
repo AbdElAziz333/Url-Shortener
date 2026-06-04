@@ -2,40 +2,52 @@ package main
 
 import (
 	"context"
+	"os"
+	// "os/signal"
+	// "syscall"
 
 	"aziz.dev/gateway/internal/configloader"
 	"aziz.dev/gateway/internal/middleware"
 	"aziz.dev/gateway/internal/postgres"
 	"aziz.dev/gateway/internal/proxy"
-
-	// "aziz.dev/gateway/internal/proxy"
 	"aziz.dev/gateway/internal/redis"
 	"aziz.dev/gateway/internal/security"
 	"aziz.dev/gateway/internal/server"
 	"aziz.dev/gateway/internal/user"
+	"github.com/sirupsen/logrus"
 )
 
 func main() {
+	logrus.SetFormatter(&logrus.JSONFormatter{})
+	logrus.SetOutput(os.Stdout)
+	logrus.SetLevel(logrus.InfoLevel)
+
+	logrus.Info("Starting gateway service...")
+
 	config, err := configloader.LoadFromEnv()
 	if err != nil {
-		panic(err)
+		logrus.WithError(err).Fatal("Failed to load config")
 	}
 
+	logrus.Info("Connecting to PostgreSQL...")
 	postgresDB, err := postgres.NewClient(context.Background(), &config.Postgres)
 	if err != nil {
-		panic(err)
+		logrus.WithError(err).Fatal("Failed to connect to PostgreSQL")
 	}
 	middleware.StartDBStatsTracking(postgresDB, "gateway")
+	logrus.Info("PostgreSQL connected successfully")
 
+	logrus.Info("Connecting to Redis...")
 	redisClient, err := redis.NewClient(context.Background(), &config.Redis)
 	if err != nil {
-		panic(err)
+		logrus.WithError(err).Fatal("Failed to connect to Redis")
 	}
+	logrus.Info("Redis connected successfully")
 
 	userRepository := user.NewRepository(postgresDB)
 	jwtService, err := security.NewService(&config.JWT, redisClient)
 	if err != nil {
-		panic(err)
+		logrus.WithError(err).Fatal("Failed to initialize JWT service")
 	}
 	
 	userService := user.NewService(userRepository, redisClient, jwtService)
@@ -57,9 +69,13 @@ func main() {
 	analytics.GET("/api/stats/:code/geo", middleware.AccessTokenMiddleware(&config.JWT), proxy.ReverseProxy("/analytics", "/analytics", config.Service.AnalyticsServiceURL))
 	analytics.GET("/api/stats/:code/referrers", middleware.AccessTokenMiddleware(&config.JWT), proxy.ReverseProxy("/analytics", "/analytics", config.Service.AnalyticsServiceURL))
 
+	logrus.Infof("Gateway service listening on port %s", config.Service.Port)
 	router.Run(":"+config.Service.Port)
 }
 
-func GracefulShutdown() {
-
-}
+// func GracefulShutdown() {
+// 	sigChan := make(chan os.Signal, 1)
+// 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+// 	<-sigChan
+// 	logrus.Info("Shutting down gateway service gracefully...")
+// }
