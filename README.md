@@ -10,35 +10,8 @@ Diagrams:
 
 [GitOps Repository](https://github.com/AbdElAziz333/url-shortener-gitops)
 
-## Vault
-## Kafka
-## Observability & Monitoring (Prometheus & Grafana)
-## Terraform
-## Ansible
-
-
 ### How to Run
 
 ## Locally
 ## Docker
 ## Kubernetes
-### Through Helm
-### Through manifest files
-
-github.com/gin-gonic/gin
-github.com/joho/godotenv
-github.com/sony/gobreaker/v2
-github.com/golang-jwt/jwt/v5
-golang.org/x/crypto/bcrypt
-gorm.io/gorm
-gorm.io/driver/postgres
-go.mongodb.org/mongo-driver/v2/mongo
-github.com/redis/go-redis/v9
-github.com/segmentio/kafka-go
-github.com/google/uuid
-
-github.com/prometheus/client_golang/prometheus
-github.com/prometheus/client_golang/prometheus/promhttp
-go.uber.org/zap
-google.golang.org/grpc
-github.com/hashicorp/vault/api
