@@ -34,7 +34,6 @@ func main() {
 	if err != nil {
 		logrus.WithError(err).Fatal("Failed to connect to PostgreSQL")
 	}
-	middleware.StartDBStatsTracking(postgresDB, "gateway")
 	logrus.Info("PostgreSQL connected successfully")
 
 	logrus.Info("Connecting to Redis...")

@@ -5,7 +5,6 @@ import (
 
 	"aziz.dev/redirect/internal/configloader"
 	"aziz.dev/redirect/internal/kafka"
-	"aziz.dev/redirect/internal/middleware"
 	"aziz.dev/redirect/internal/postgres"
 	"aziz.dev/redirect/internal/redis"
 	"aziz.dev/redirect/internal/resolve"
@@ -25,7 +24,6 @@ func main() {
 	if err != nil {
 		logrus.WithError(err).Fatal("Failed to initialize Postgres client")
 	}
-	middleware.StartDBStatsTracking(postgresDB, "redirect")
 
 	logrus.WithField("addr", config.Redis.Addr).Info("Initializing Redis client")
 	redisClient, err := redis.NewClient(context.Background(), &config.Redis)

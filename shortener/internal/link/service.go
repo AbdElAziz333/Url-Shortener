@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"aziz.dev/shortener/internal/middleware"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
@@ -56,7 +55,6 @@ func (s *service) Create(ctx context.Context, userID uuid.UUID, req CreateReques
 		code, err = generateRandomCode(8)
 
 		if err != nil {
-			middleware.UrlsCreatedTotal.WithLabelValues("failure").Inc()
 			logrus.WithError(err).Error("Failed to generate random code")
 			return nil, err
 		}
@@ -74,16 +72,13 @@ func (s *service) Create(ctx context.Context, userID uuid.UUID, req CreateReques
 	}
 
 	if err := s.repo.Create(ctx, link); err != nil {
-		middleware.UrlsCreatedTotal.WithLabelValues("failure").Inc()
 		if req.CustomAlias == "" && (strings.Contains(err.Error(), "duplicate key") || strings.Contains(err.Error(), "23505")) {
-			middleware.HashCollisionsTotal.Inc()
 			logrus.WithField("code", code).Warn("Hash collision detected")
 		}
 		logrus.WithError(err).Error("Failed to create link")
 		return nil, err
 	}
 
-	middleware.UrlsCreatedTotal.WithLabelValues("success").Inc()
 	logrus.WithField("user_id", userID).WithField("code", code).Info("Successfully created link")
 
 	return &Dto{

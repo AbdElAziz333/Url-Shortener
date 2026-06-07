@@ -3,10 +3,8 @@ package server
 import (
 	"net/http"
 
-	"aziz.dev/redirect/internal/middleware"
 	"aziz.dev/redirect/internal/resolve"
 	"github.com/gin-gonic/gin"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func NewRouter(resolverHandler *resolve.Handler) *gin.Engine {
@@ -16,10 +14,8 @@ func NewRouter(resolverHandler *resolve.Handler) *gin.Engine {
 		gin.Recovery(),
 		gin.Logger(),
 	)
-	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	redirectGroup := router.Group("/redirect")
-	redirectGroup.Use(middleware.Prometheus())
 	redirectGroup.GET("/health", healthHandler)
 
 	resolverHandler.RegisterRoutes(redirectGroup)

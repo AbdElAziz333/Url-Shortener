@@ -6,16 +6,14 @@ import (
 	"net/http"
 	"net/http/httputil"
 	url2 "net/url"
-	"strconv"
 	"strings"
-	"time"
 
-	"aziz.dev/gateway/internal/middleware"
 	"github.com/gin-gonic/gin"
 )
 
 // Put userIDKey at package level, outside any function
 type contextKey string
+
 const userIDKey contextKey = "userID"
 
 func ReverseProxy(fromPrefix, toPrefix, target string) gin.HandlerFunc {
@@ -54,13 +52,6 @@ func ReverseProxy(fromPrefix, toPrefix, target string) gin.HandlerFunc {
 			}
 		}
 
-		start := time.Now()
 		proxy.ServeHTTP(c.Writer, c.Request)
-		duration := time.Since(start).Seconds()
-
-		serviceName := strings.TrimPrefix(fromPrefix, "/")
-		status := strconv.Itoa(c.Writer.Status())
-
-		middleware.UpstreamCallDuration.WithLabelValues(serviceName, status).Observe(duration)
 	}
 }

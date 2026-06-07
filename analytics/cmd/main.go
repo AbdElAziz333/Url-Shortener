@@ -5,7 +5,6 @@ import (
 
 	"aziz.dev/analytics/internal/configloader"
 	"aziz.dev/analytics/internal/kafka"
-	"aziz.dev/analytics/internal/middleware"
 	"aziz.dev/analytics/internal/mongo"
 	"aziz.dev/analytics/internal/postgres"
 	"aziz.dev/analytics/internal/server"
@@ -25,7 +24,6 @@ func main() {
 		logrus.Fatalf("Failed to connect to Postgres: %v", err)
 	}
 	logrus.Info("Connected to Postgres successfully")
-	middleware.StartDBStatsTracking(postgresDB, "analytics")
 
 	mongoClient, err := mongo.NewClient(&config.Mongo)
 	if err != nil {

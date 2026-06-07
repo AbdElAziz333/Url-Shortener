@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"aziz.dev/analytics/internal/config"
-	"aziz.dev/analytics/internal/middleware"
 	"github.com/segmentio/kafka-go"
 	"github.com/sirupsen/logrus"
 )
@@ -96,7 +95,6 @@ func (c *Consumer) Ingest(ctx context.Context, repo IngestRepository) {
 		default:
 		}
 
-		start := time.Now()
 		event, err := c.ReadEvent(ctx)
 		if err != nil {
 			if ctx.Err() != nil {
@@ -107,7 +105,6 @@ func (c *Consumer) Ingest(ctx context.Context, repo IngestRepository) {
 			logrus.WithError(err).WithFields(logrus.Fields{
 				"topic": c.topic,
 			}).Warn("Kafka read error, will retry in 5 seconds")
-			middleware.AnalyticsProcessingFailuresTotal.WithLabelValues("kafka_read_error").Inc()
 
 			// Backoff before retrying
 			select {
@@ -118,21 +115,13 @@ func (c *Consumer) Ingest(ctx context.Context, repo IngestRepository) {
 		}
 
 		err = repo.SaveClickEvent(ctx, event)
-		duration := time.Since(start).Seconds()
 
 		if err != nil {
 			logrus.WithError(err).WithField("topic", c.topic).Error("Failed to save click event")
-			middleware.AnalyticsProcessingFailuresTotal.WithLabelValues("save_error").Inc()
 		} else {
 			logrus.WithFields(logrus.Fields{
-				"topic":            c.topic,
-				"duration_seconds": duration,
+				"topic": c.topic,
 			}).Debug("Successfully processed event")
-			middleware.AnalyticsProcessingDuration.WithLabelValues(c.topic).Observe(duration)
 		}
-
-		// Update queue lag stats
-		stats := c.reader.Stats()
-		middleware.AnalyticsEventsQueueDepth.WithLabelValues(c.topic).Set(float64(stats.Lag))
 	}
 }

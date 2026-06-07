@@ -5,7 +5,6 @@ import (
 	"errors"
 	"time"
 
-	"aziz.dev/redirect/internal/middleware"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 )
@@ -43,34 +42,25 @@ func (s *service) ResolveCode(ctx context.Context, code string) (*Dto, error) {
 	logrus.WithField("code", code).Info("Resolving code")
 
 	// L1: Redis cache
-	startCache := time.Now()
 	url, err := s.cache.Get(ctx, code).Result()
-	durationCache := time.Since(startCache).Seconds()
-	middleware.RedirectLookupDuration.WithLabelValues("cache").Observe(durationCache)
 
 	if err == nil && url != "" {
 		logrus.WithField("code", code).Info("Cache hit")
-		middleware.RedirectCacheHitsTotal.WithLabelValues("hit").Inc()
 		return &Dto{Code: code, OriginalURL: url}, nil
 	}
 
 	if err == redis.Nil || url == "" {
 		logrus.WithField("code", code).Info("Cache miss")
-		middleware.RedirectCacheHitsTotal.WithLabelValues("miss").Inc()
 	} else {
 		logrus.WithError(err).WithField("code", code).Warn("Cache lookup error")
 	}
 
 	// L2: database
-	startDB := time.Now()
 	link, err := s.repo.Find(ctx, code)
-	durationDB := time.Since(startDB).Seconds()
-	middleware.RedirectLookupDuration.WithLabelValues("database").Observe(durationDB)
 
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			logrus.WithField("code", code).Warn("Code not found in database")
-			middleware.RedirectNotFoundTotal.Inc()
 		} else {
 			logrus.WithError(err).WithField("code", code).Error("Database lookup error")
 		}
@@ -82,7 +72,7 @@ func (s *service) ResolveCode(ctx context.Context, code string) (*Dto, error) {
 		logrus.WithField("code", code).Warn("Link is inactive or expired")
 		return nil, ErrLinkInactive
 	}
-		
+
 	// Fire-and-forget analytics — must not slow down the redirect.
 	// A detached background context is intentional: the HTTP request context
 	// may be cancelled before the goroutine runs.
