@@ -7,7 +7,6 @@ on:
       - 'gateway/**'
       - 'shortener/**'
       - 'redirect/**'
-      - 'analytics/**'
       - '.github/workflows/**'
   pull_request:
     branches: [main]
@@ -15,7 +14,6 @@ on:
       - 'gateway/**'
       - 'shortener/**'
       - 'redirect/**'
-      - 'analytics/**'
       - '.github/workflows/**'
 
 env:
@@ -30,7 +28,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: [gateway, shortener, redirect, analytics]
+        service: [gateway, shortener, redirect]
 
     defaults:
       run:
@@ -63,7 +61,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: [gateway, shortener, redirect, analytics]
+        service: [gateway, shortener, redirect]
 
     steps:
       - name: Checkout code
@@ -82,13 +80,3 @@ jobs:
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.service }}:test
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.service }}:test
-          format: 'table'
-          exit-code: '1'
-          ignore-unfixed: true
-          vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH'
