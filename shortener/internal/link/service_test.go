@@ -125,7 +125,8 @@ func TestService_Create_WithCustomAlias(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, dto)
 	assert.Equal(t, "mylink", dto.Code)
-	assert.Equal(t, "mylink", dto.CustomAlias)
+	assert.NotNil(t, dto.CustomAlias)
+	assert.Equal(t, "mylink", *dto.CustomAlias)
 	repo.AssertExpectations(t)
 }
 

@@ -5,7 +5,7 @@ import "time"
 type Dto struct {
 	Code        string     `json:"code"`
 	OriginalURL string     `json:"original_url"`
-	CustomAlias string     `json:"custom_alias,omitempty"`
+	CustomAlias *string    `json:"custom_alias,omitempty"`
 	ExpiresAt   *time.Time `json:"expires_at,omitempty"`
 	IsActive    bool       `json:"is_active"`
 	CreatedAt   time.Time  `json:"created_at"`

@@ -14,7 +14,6 @@ type ServiceConfig struct {
 	Port string
 	ShortenerServiceURL string
 	RedirectServiceURL string
-	AnalyticsServiceURL string
 }
 
 type PostgresConfig struct {

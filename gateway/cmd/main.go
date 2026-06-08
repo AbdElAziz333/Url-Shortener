@@ -63,11 +63,6 @@ func main() {
 	redirect := router.Group("/redirect")
 	redirect.GET("/:code", proxy.ReverseProxy("/redirect", "/redirect", config.Service.RedirectServiceURL))
 
-	analytics := router.Group("/analytics")
-	analytics.GET("/api/stats/:code", middleware.AccessTokenMiddleware(&config.JWT), proxy.ReverseProxy("/analytics", "/analytics", config.Service.AnalyticsServiceURL))
-	analytics.GET("/api/stats/:code/geo", middleware.AccessTokenMiddleware(&config.JWT), proxy.ReverseProxy("/analytics", "/analytics", config.Service.AnalyticsServiceURL))
-	analytics.GET("/api/stats/:code/referrers", middleware.AccessTokenMiddleware(&config.JWT), proxy.ReverseProxy("/analytics", "/analytics", config.Service.AnalyticsServiceURL))
-
 	logrus.Infof("Gateway service listening on port %s", config.Service.Port)
 	router.Run(":"+config.Service.Port)
 }

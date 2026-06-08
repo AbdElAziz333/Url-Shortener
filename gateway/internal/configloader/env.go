@@ -28,7 +28,6 @@ func LoadFromEnv() (*config.AppConfig, error) {
 
 	shortenerServiceURL := os.Getenv("SHORTENER_SERVICE_URL")
 	redirectServiceURL := os.Getenv("REDIRECT_SERVICE_URL")
-	analyticsServiceURL := os.Getenv("ANALYTICS_SERVICE_URL")
 
 	// postgres
 	postgresHost := os.Getenv("POSTGRES_HOST")
@@ -53,7 +52,6 @@ func LoadFromEnv() (*config.AppConfig, error) {
 			Port: servicePort,
 			ShortenerServiceURL: shortenerServiceURL,
 			RedirectServiceURL: redirectServiceURL,
-			AnalyticsServiceURL: analyticsServiceURL,
 		},
 		Postgres: config.PostgresConfig{
 			Host: postgresHost,

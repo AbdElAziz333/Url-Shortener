@@ -220,8 +220,9 @@ func TestCreate_WithCustomAlias(t *testing.T) {
 	userID := validUserID()
 	now := time.Now()
 
+	alias := "myalias"
 	reqBody := CreateRequest{OriginalURL: "https://example.com", CustomAlias: "myalias"}
-	expectedDto := &Dto{Code: "myalias", OriginalURL: "https://example.com", CustomAlias: "myalias", IsActive: true, CreatedAt: now}
+	expectedDto := &Dto{Code: "myalias", OriginalURL: "https://example.com", CustomAlias: &alias, IsActive: true, CreatedAt: now}
 	svc.On("Create", mock.Anything, userID, reqBody).Return(expectedDto, nil)
 
 	body, _ := json.Marshal(reqBody)

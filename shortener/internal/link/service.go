@@ -61,11 +61,19 @@ func (s *service) Create(ctx context.Context, userID uuid.UUID, req CreateReques
 		logrus.WithField("code", code).Debug("Generated random code")
 	}
 
+	// Only store the alias when one was actually provided.
+	// Storing "" would violate the UNIQUE constraint since Postgres treats
+	// all empty strings as equal, while multiple NULLs are allowed.
+	var customAlias *string
+	if req.CustomAlias != "" {
+		customAlias = &req.CustomAlias
+	}
+
 	link := &Link{
 		UserID:      userID,
 		Code:        code,
 		OriginalURL: req.OriginalURL,
-		CustomAlias: req.CustomAlias,
+		CustomAlias: customAlias,
 		ExpiresAt:   req.ExpiresAt,
 		IsActive:    true,
 		CreatedAt:   time.Now(),

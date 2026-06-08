@@ -1,3 +1,2 @@
 CREATE DATABASE gateway;
 CREATE DATABASE shortener;
-CREATE DATABASE analytics;

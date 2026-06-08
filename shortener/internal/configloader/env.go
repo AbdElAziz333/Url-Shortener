@@ -22,40 +22,16 @@ func LoadFromEnv() (*config.AppConfig, error) {
 		}
 	}
 
-	serviceName := os.Getenv("SERVICE_NAME")
-	servicePort := os.Getenv("SERVICE_PORT")
-
-	shortenerServiceURL := os.Getenv("SHORTENER_SERVICE_URL")
-	redirectServiceURL := os.Getenv("REDIRECT_SERVICE_URL")
-	analyticsServiceURL := os.Getenv("ANALYTICS_SERVICE_URL")
-
-	// postgres
-	postgresHost := os.Getenv("POSTGRES_HOST")
-	postgresUser := os.Getenv("POSTGRES_USER")
-	postgresPassword := os.Getenv("POSTGRES_PASSWORD")
-	postgresDB := os.Getenv("POSTGRES_DB")
-
-	//kafka
-	kafkaBrokers := os.Getenv("KAFKA_BROKERS")
-	kafkaGroupID := os.Getenv("KAFKA_GROUP_ID")
-
 	return &config.AppConfig{
 		Service: config.ServiceConfig{
-			Name: serviceName,
-			Port: servicePort,
-			ShortenerServiceURL: shortenerServiceURL,
-			RedirectServiceURL: redirectServiceURL,
-			AnalyticsServiceURL: analyticsServiceURL,
+			Name: os.Getenv("SERVICE_NAME"),
+			Port: os.Getenv("SERVICE_PORT"),
 		},
 		Postgres: config.PostgresConfig{
-			Host: postgresHost,
-			User: postgresUser,
-			Password: postgresPassword,
-			DBName: postgresDB,
-		},
-		Kafka: config.KafkaConfig{
-			Brokers:  []string{kafkaBrokers},
-			GroupID: kafkaGroupID,
+			Host:     os.Getenv("POSTGRES_HOST"),
+			User:     os.Getenv("POSTGRES_USER"),
+			Password: os.Getenv("POSTGRES_PASSWORD"),
+			DBName:   os.Getenv("POSTGRES_DB"),
 		},
 	}, nil
 }

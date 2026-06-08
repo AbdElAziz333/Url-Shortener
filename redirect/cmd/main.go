@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"aziz.dev/redirect/internal/configloader"
-	"aziz.dev/redirect/internal/kafka"
 	"aziz.dev/redirect/internal/postgres"
 	"aziz.dev/redirect/internal/redis"
 	"aziz.dev/redirect/internal/resolve"
@@ -31,18 +30,12 @@ func main() {
 		logrus.WithError(err).Fatal("Failed to initialize Redis client")
 	}
 
-	logrus.WithField("brokers", config.Kafka.Brokers).Info("Initializing Kafka producer")
-	kafkaProducer, err := kafka.NewProducer(context.Background(), &config.Kafka)
-	if err != nil {
-		logrus.WithError(err).Fatal("Failed to initialize Kafka producer")
-	}
-	
 	resolveRepository := resolve.NewRepository(postgresDB)
-	resolveService := resolve.NewService(resolveRepository, redisClient, kafkaProducer)
+	resolveService := resolve.NewService(resolveRepository, redisClient)
 	resolveHandler := resolve.NewHandler(resolveService)
 
 	router := server.NewRouter(resolveHandler)
 
 	logrus.WithField("port", config.Service.Port).Info("Starting server")
-	router.Run(":"+config.Service.Port)
+	router.Run(":" + config.Service.Port)
 }

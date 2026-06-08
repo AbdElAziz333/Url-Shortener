@@ -12,7 +12,7 @@ type Link struct {
 	UserID      uuid.UUID `gorm:"index"`
 	Code        string `gorm:"uniqueIndex"`
 	OriginalURL string
-	CustomAlias string
+	CustomAlias *string
 	ExpiresAt   *time.Time
 	IsActive    bool
 	CreatedAt   time.Time

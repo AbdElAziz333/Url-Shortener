@@ -16,25 +16,19 @@ type RedisClient interface {
 	Set(ctx context.Context, key string, value any, expiration time.Duration) *redis.StatusCmd
 }
 
-type KafkaProducer interface {
-	SendEvent(ctx context.Context, topic string, message map[string]any) error
-}
-
 type Service interface {
 	ResolveCode(ctx context.Context, code string) (*Dto, error)
 }
 
 type service struct {
-	repo          Repository
-	cache         RedisClient
-	kafkaProducer KafkaProducer
+	repo           Repository
+	cache          RedisClient
 }
 
-func NewService(repo Repository, cache RedisClient, kafkaProducer KafkaProducer) Service {
+func NewService(repo Repository, cache RedisClient) Service {
 	return &service{
 		repo:          repo,
 		cache:         cache,
-		kafkaProducer: kafkaProducer,
 	}
 }
 
@@ -72,21 +66,6 @@ func (s *service) ResolveCode(ctx context.Context, code string) (*Dto, error) {
 		logrus.WithField("code", code).Warn("Link is inactive or expired")
 		return nil, ErrLinkInactive
 	}
-
-	// Fire-and-forget analytics — must not slow down the redirect.
-	// A detached background context is intentional: the HTTP request context
-	// may be cancelled before the goroutine runs.
-	go func() {
-		bgCtx := context.Background()
-		if err := s.kafkaProducer.SendEvent(bgCtx, "url-clicked", map[string]any{
-			"code":         link.Code,
-			"original_url": link.OriginalURL,
-			"user_id":      link.UserID,
-			"clicked_at":   time.Now().UTC(),
-		}); err != nil {
-			logrus.WithError(err).WithField("code", code).Warn("Failed to send click event")
-		}
-	}()
 
 	// Write-back to cache with a TTL that matches the link's remaining lifetime.
 	if link.ExpiresAt != nil {

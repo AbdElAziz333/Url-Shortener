@@ -71,10 +71,11 @@ func TestLink_BeforeCreate_UniqueIDsPerRecord(t *testing.T) {
 func TestMapToDto_AllFieldsMapped(t *testing.T) {
 	exp := time.Now().Add(24 * time.Hour)
 	now := time.Now()
+	alias := "myalias"
 	link := &Link{
 		Code:        "abc123",
 		OriginalURL: "https://example.com",
-		CustomAlias: "myalias",
+		CustomAlias: &alias,
 		ExpiresAt:   &exp,
 		IsActive:    true,
 		CreatedAt:   now,
@@ -84,7 +85,7 @@ func TestMapToDto_AllFieldsMapped(t *testing.T) {
 
 	assert.Equal(t, "abc123", dto.Code)
 	assert.Equal(t, "https://example.com", dto.OriginalURL)
-	assert.Equal(t, "myalias", dto.CustomAlias)
+	assert.Equal(t, &alias, dto.CustomAlias)
 	assert.Equal(t, &exp, dto.ExpiresAt)
 	assert.True(t, dto.IsActive)
 	assert.Equal(t, now, dto.CreatedAt)
