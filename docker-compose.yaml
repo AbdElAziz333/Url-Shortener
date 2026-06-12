@@ -26,6 +26,11 @@ services:
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       JWT_ACCESS_EXPIRY: ${JWT_ACCESS_EXPIRY}
       JWT_REFRESH_EXPIRY: ${JWT_REFRESH_EXPIRY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     profiles:
       - all
       - app
@@ -48,6 +53,9 @@ services:
       POSTGRES_USER: aziz
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: shortener
+    depends_on:
+      postgres:
+        condition: service_healthy
     profiles:
       - all
       - app
@@ -73,6 +81,11 @@ services:
       REDIS_ADDR: redis:6379
       REDIS_USER: app
       REDIS_PASSWORD: ${REDIS_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     profiles:
       - all
       - app
