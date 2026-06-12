@@ -8,14 +8,3 @@ CREATE TABLE IF NOT EXISTS links (
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-
--- links
--- Column	Type	Notes
--- idPK	uuid	gen_random_uuid()
--- codeIDX	varchar(12)	unique, base62 encoded
--- original_url	text	not null
--- user_idFKIDX	uuid	→ auth_schema.users.id
--- custom_alias	varchar(50)	nullable, unique
--- expires_at	timestamptz	nullable
--- is_active	boolean	default true
--- created_at	timestamptz	default now()

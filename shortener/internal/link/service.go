@@ -32,7 +32,7 @@ func NewService(repo Repository) Service {
 
 func (s *service) GetAll(ctx context.Context, userID uuid.UUID) ([]Dto, error) {
 	logrus.WithField("user_id", userID).Info("Fetching all links for user")
-	links, err := s.repo.FindAllByUserID(ctx, userID)
+	links, err := s.repo.FindAllByUserID(ctx, userID, Pagination{Page: 1, PageSize: 10})
 	if err != nil {
 		logrus.WithError(err).WithField("user_id", userID).Error("Failed to fetch links")
 		return nil, err

@@ -8,7 +8,7 @@ import (
 )
 
 type Repository interface {
-	FindAllByUserID(ctx context.Context, userID uuid.UUID) (*[]Link, error)
+	FindAllByUserID(ctx context.Context, userID uuid.UUID, pagination Pagination) (*[]Link, error)
 	FindByCodeAndUserID(ctx context.Context, code string, userID uuid.UUID) (*Link, error)
 	Create(ctx context.Context, link *Link) error
 	Update(ctx context.Context, link *Link) error
@@ -24,9 +24,34 @@ func NewRepository(db *gorm.DB) Repository {
 	}
 }
 
-func (r *repository) FindAllByUserID(ctx context.Context, userID uuid.UUID) (*[]Link, error) {
+type Pagination struct {
+	Page int // e.g., 1 for the first page
+	PageSize int // e.g., 10 items per page
+}
+
+func (r *repository) FindAllByUserID(ctx context.Context, userID uuid.UUID, pagination Pagination) (*[]Link, error) {
 	var links []Link
-	err := r.db.WithContext(ctx).Where("user_id = ? AND is_active = ?", userID, true).Find(&links).Error
+
+	if pagination.Page <= 0 {
+		pagination.Page = 1
+	}
+
+	if pagination.PageSize <= 0 {
+		pagination.PageSize = 10
+	}
+
+	// Calculate offset: (page - 1) * pageSize
+    // Page 1: (1 - 1) * 10 = 0 (skip 0 items)
+    // Page 2: (2 - 1) * 10 = 10 (skip first 10 items)
+	offset := (pagination.Page - 1) * pagination.PageSize
+
+	err := r.db.WithContext(ctx).
+				Where("user_id = ? AND is_active = ?", userID, true).
+				Limit(pagination.PageSize).
+				Offset(offset).
+				Find(&links).
+				Error
+
 	return &links, err
 }
 
