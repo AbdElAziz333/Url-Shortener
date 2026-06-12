@@ -28,7 +28,8 @@ func main() {
 	}
 
 	linkRepository := link.NewRepository(postgresDB)
-	linkService := link.NewService(linkRepository)
+	cbLinkRepository := link.NewCircuitBreakerRepository(linkRepository)
+	linkService := link.NewService(cbLinkRepository)
 	linkHandler := link.NewHandler(linkService)
 
 	router := server.NewRouter(linkHandler)

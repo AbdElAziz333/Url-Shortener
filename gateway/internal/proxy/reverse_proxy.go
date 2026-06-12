@@ -7,6 +7,7 @@ import (
 	"net/http/httputil"
 	url2 "net/url"
 	"strings"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 )
@@ -16,6 +17,37 @@ type contextKey string
 
 const userIDKey contextKey = "userID"
 
+var (
+	transportsMu sync.RWMutex
+	transports   = make(map[string]http.RoundTripper)
+)
+
+func getOrCreateTransport(target string) http.RoundTripper {
+	transportsMu.RLock()
+	tr, ok := transports[target]
+	transportsMu.RUnlock()
+	if ok {
+		return tr
+	}
+
+	transportsMu.Lock()
+	defer transportsMu.Unlock()
+	if tr, ok = transports[target]; ok {
+		return tr
+	}
+
+	url, err := url2.Parse(target)
+	var name string
+	if err == nil {
+		name = url.Host
+	} else {
+		name = target
+	}
+	tr = NewCircuitBreakerRoundTripper(name, nil)
+	transports[target] = tr
+	return tr
+}
+
 func ReverseProxy(fromPrefix, toPrefix, target string) gin.HandlerFunc {
 	url, err := url2.Parse(target)
 	if err != nil {
@@ -23,6 +55,7 @@ func ReverseProxy(fromPrefix, toPrefix, target string) gin.HandlerFunc {
 	}
 
 	proxy := httputil.NewSingleHostReverseProxy(url)
+	proxy.Transport = getOrCreateTransport(target)
 
 	originalDirector := proxy.Director
 	proxy.Director = func(req *http.Request) {
@@ -55,3 +88,4 @@ func ReverseProxy(fromPrefix, toPrefix, target string) gin.HandlerFunc {
 		proxy.ServeHTTP(c.Writer, c.Request)
 	}
 }
+

@@ -55,7 +55,7 @@ func TestRepo_FindAllByUserID_ReturnsOnlyActiveLinksForUser(t *testing.T) {
 	db.Create(link2)
 	db.Create(link3)
 
-	results, err := repo.FindAllByUserID(ctx, userID)
+	results, err := repo.FindAllByUserID(ctx, userID, Pagination{})
 
 	require.NoError(t, err)
 	assert.Len(t, *results, 1)
@@ -67,7 +67,7 @@ func TestRepo_FindAllByUserID_EmptyForUnknownUser(t *testing.T) {
 	repo := NewRepository(db)
 	unknownID := uuid.MustParse("00000000-0000-0000-0000-000000000099")
 
-	results, err := repo.FindAllByUserID(context.Background(), unknownID)
+	results, err := repo.FindAllByUserID(context.Background(), unknownID, Pagination{})
 
 	require.NoError(t, err)
 	assert.Empty(t, *results)

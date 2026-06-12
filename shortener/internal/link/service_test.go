@@ -15,8 +15,8 @@ type MockRepository struct {
 	mock.Mock
 }
 
-func (m *MockRepository) FindAllByUserID(ctx context.Context, userID uuid.UUID) (*[]Link, error) {
-	args := m.Called(ctx, userID)
+func (m *MockRepository) FindAllByUserID(ctx context.Context, userID uuid.UUID, pagination Pagination) (*[]Link, error) {
+	args := m.Called(ctx, userID, pagination)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -53,7 +53,7 @@ func TestService_GetAll_Success(t *testing.T) {
 		{Code: "abc", OriginalURL: "https://example.com", IsActive: true, CreatedAt: now},
 		{Code: "def", OriginalURL: "https://another.com", IsActive: true, CreatedAt: now},
 	}
-	repo.On("FindAllByUserID", mock.Anything, userID).Return(links, nil)
+	repo.On("FindAllByUserID", mock.Anything, userID, mock.Anything).Return(links, nil)
 
 	dtos, err := svc.GetAll(context.Background(), userID)
 
@@ -69,7 +69,7 @@ func TestService_GetAll_Empty(t *testing.T) {
 	svc := NewService(repo)
 	userID := validUserID()
 
-	repo.On("FindAllByUserID", mock.Anything, userID).Return(&[]Link{}, nil)
+	repo.On("FindAllByUserID", mock.Anything, userID, mock.Anything).Return(&[]Link{}, nil)
 
 	dtos, err := svc.GetAll(context.Background(), userID)
 
@@ -83,7 +83,7 @@ func TestService_GetAll_RepoError(t *testing.T) {
 	svc := NewService(repo)
 	userID := validUserID()
 
-	repo.On("FindAllByUserID", mock.Anything, userID).Return(nil, errors.New("db connection failed"))
+	repo.On("FindAllByUserID", mock.Anything, userID, mock.Anything).Return(nil, errors.New("db connection failed"))
 
 	dtos, err := svc.GetAll(context.Background(), userID)
 
