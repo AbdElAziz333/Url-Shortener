@@ -1,10 +1,14 @@
+CREATE EXTENSION IF NOT EXISTS citext;
+
 CREATE TABLE IF NOT EXISTS links (
     id UUID NOT NULL PRIMARY KEY,
     code VARCHAR(12) NOT NULL UNIQUE,
     original_url TEXT NOT NULL,
     user_id UUID NOT NULL,
-    custom_alias VARCHAR(50) UNIQUE,
+    custom_alias CITEXT UNIQUE,
     expires_at TIMESTAMPTZ,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX IF NOT EXISTS idx_links_user_id ON links(user_id);
