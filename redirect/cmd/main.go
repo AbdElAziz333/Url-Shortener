@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"os"
 
 	"aziz.dev/redirect/internal/configloader"
 	"aziz.dev/redirect/internal/postgres"
@@ -12,6 +13,10 @@ import (
 )
 
 func main() {
+	logrus.SetFormatter(&logrus.JSONFormatter{})
+	logrus.SetOutput(os.Stdout)
+	logrus.SetLevel(logrus.InfoLevel)
+
 	logrus.Info("Starting redirect service")
 	config, err := configloader.LoadFromEnv()
 	if err != nil {
@@ -36,6 +41,12 @@ func main() {
 	resolveHandler := resolve.NewHandler(resolveService)
 
 	router := server.NewRouter(resolveHandler)
+
+	go func() {
+		if err := server.StartGRPC(resolveService, config.Service.GRPCPort); err != nil {
+			logrus.WithError(err).Fatal("Failed to start gRPC server")
+		}
+	}()
 
 	logrus.WithField("port", config.Service.Port).Info("Starting server")
 	router.Run(":" + config.Service.Port)

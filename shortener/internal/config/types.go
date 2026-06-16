@@ -6,8 +6,9 @@ type AppConfig struct {
 }
 
 type ServiceConfig struct {
-	Name string
-	Port string
+	Name     string
+	Port     string
+	GRPCPort string
 }
 
 type PostgresConfig struct {

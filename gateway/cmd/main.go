@@ -7,9 +7,9 @@ import (
 	// "syscall"
 
 	"aziz.dev/gateway/internal/configloader"
+	"aziz.dev/gateway/internal/grpcclient"
 	"aziz.dev/gateway/internal/middleware"
 	"aziz.dev/gateway/internal/postgres"
-	"aziz.dev/gateway/internal/proxy"
 	"aziz.dev/gateway/internal/redis"
 	"aziz.dev/gateway/internal/security"
 	"aziz.dev/gateway/internal/server"
@@ -52,16 +52,23 @@ func main() {
 	userService := user.NewService(userRepository, redisClient, jwtService)
 	userHandler := user.NewHandler(userService)
 
+	grpcClients, err := grpcclient.NewClients(config.Service.ShortenerServiceURL, config.Service.RedirectServiceURL)
+	if err != nil {
+		logrus.WithError(err).Fatal("Failed to initialize gRPC clients")
+	}
+	defer grpcClients.Close()
+
+	grpcHandler := grpcclient.NewHandler(grpcClients)
 	router := server.NewRouter(userHandler)
 
 	shortener := router.Group("/shortener")
-	shortener.GET("/api/links", middleware.AccessTokenMiddleware(&config.JWT), proxy.ReverseProxy("/shortener", "/shortener", config.Service.ShortenerServiceURL))
-	shortener.POST("/api/links", middleware.AccessTokenMiddleware(&config.JWT), proxy.ReverseProxy("/shortener", "/shortener", config.Service.ShortenerServiceURL))
-	shortener.PATCH("/api/links/:code/expiry", middleware.AccessTokenMiddleware(&config.JWT), proxy.ReverseProxy("/shortener", "/shortener", config.Service.ShortenerServiceURL))
-	shortener.DELETE("/api/links/:code", middleware.AccessTokenMiddleware(&config.JWT), proxy.ReverseProxy("/shortener", "/shortener", config.Service.ShortenerServiceURL))
+	shortener.GET("/api/links", middleware.AccessTokenMiddleware(&config.JWT), grpcHandler.GetAllLinks)
+	shortener.POST("/api/links", middleware.AccessTokenMiddleware(&config.JWT), grpcHandler.CreateLink)
+	shortener.PATCH("/api/links/:code/expiry", middleware.AccessTokenMiddleware(&config.JWT), grpcHandler.UpdateExpiry)
+	shortener.DELETE("/api/links/:code", middleware.AccessTokenMiddleware(&config.JWT), grpcHandler.DeleteLink)
 
 	redirect := router.Group("/redirect")
-	redirect.GET("/:code", proxy.ReverseProxy("/redirect", "/redirect", config.Service.RedirectServiceURL))
+	redirect.GET("/:code", grpcHandler.ResolveCode)
 
 	logrus.Infof("Gateway service listening on port %s", config.Service.Port)
 	router.Run(":"+config.Service.Port)

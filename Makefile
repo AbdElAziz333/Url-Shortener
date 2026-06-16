@@ -3,6 +3,14 @@ ifneq (,$(wildcard .env))
 	export
 endif
 
+# Protobuf
+
+generate_proto:
+	cd shortener && mkdir -p internal/pb && protoc --proto_path=../proto --go_out=internal/pb --go_opt=paths=source_relative --go-grpc_out=internal/pb --go-grpc_opt=paths=source_relative ../proto/shortener.proto
+	cd redirect && mkdir -p internal/pb && protoc --proto_path=../proto --go_out=internal/pb --go_opt=paths=source_relative --go-grpc_out=internal/pb --go-grpc_opt=paths=source_relative ../proto/redirect.proto
+	cd gateway && mkdir -p internal/pb/shortener internal/pb/redirect && protoc --proto_path=../proto --go_out=internal/pb/shortener --go_opt=paths=source_relative --go_opt=Mshortener.proto=aziz.dev/gateway/internal/pb/shortener --go-grpc_out=internal/pb/shortener --go-grpc_opt=paths=source_relative --go-grpc_opt=Mshortener.proto=aziz.dev/gateway/internal/pb/shortener ../proto/shortener.proto
+	cd gateway && protoc --proto_path=../proto --go_out=internal/pb/redirect --go_opt=paths=source_relative --go_opt=Mredirect.proto=aziz.dev/gateway/internal/pb/redirect --go-grpc_out=internal/pb/redirect --go-grpc_opt=paths=source_relative --go-grpc_opt=Mredirect.proto=aziz.dev/gateway/internal/pb/redirect ../proto/redirect.proto
+
 # Run Locally
 
 run_gateway:

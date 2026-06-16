@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package shortener;
+option go_package = "aziz.dev/shortener/internal/pb";
+
+import "google/protobuf/timestamp.proto";
+
+message Link {
+  string code = 1;
+  string original_url = 2;
+  optional string custom_alias = 3;
+  google.protobuf.Timestamp expires_at = 4;
+  bool is_active = 5;
+  google.protobuf.Timestamp created_at = 6;
+}
+
+message GetAllLinksRequest {
+  string user_id = 1;
+}
+
+message GetAllLinksResponse {
+  repeated Link links = 1;
+}
+
+message CreateLinkRequest {
+  string user_id = 1;
+  string original_url = 2;
+  optional string custom_alias = 3;
+  google.protobuf.Timestamp expires_at = 4;
+}
+
+message CreateLinkResponse {
+  Link link = 1;
+}
+
+message UpdateExpiryRequest {
+  string user_id = 1;
+  string code = 2;
+  google.protobuf.Timestamp expires_at = 3;
+}
+
+message UpdateExpiryResponse {
+  string message = 1;
+}
+
+message DeleteLinkRequest {
+  string user_id = 1;
+  string code = 2;
+}
+
+message DeleteLinkResponse {
+  string message = 1;
+}
+
+service ShortenerService {
+  rpc GetAllLinks(GetAllLinksRequest) returns (GetAllLinksResponse);
+  rpc CreateLink(CreateLinkRequest) returns (CreateLinkResponse);
+  rpc UpdateExpiry(UpdateExpiryRequest) returns (UpdateExpiryResponse);
+  rpc DeleteLink(DeleteLinkRequest) returns (DeleteLinkResponse);
+}

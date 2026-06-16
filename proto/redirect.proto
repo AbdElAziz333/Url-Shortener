@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package redirect;
+option go_package = "aziz.dev/redirect/internal/pb";
+
+message ResolveCodeRequest {
+  string code = 1;
+}
+
+message ResolveCodeResponse {
+  string code = 1;
+  string original_url = 2;
+}
+
+service RedirectService {
+  rpc ResolveCode(ResolveCodeRequest) returns (ResolveCodeResponse);
+}
