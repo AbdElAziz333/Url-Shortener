@@ -48,6 +48,19 @@ run_all_integration_tests:
 	run_shortener_integration_tests
 	run_redirect_integration_tests
 
+# Run Performance Tests
+
+run_gateway_performance_tests:
+	k6 run perf/gateway.js
+run_shortener_performance_tests:
+	k6 run perf/shortener.js
+run_redirect_performance_tests:
+	k6 run perf/redirect.js
+run_all_performance_tests:
+	run_gateway_performance_tests
+	run_shortener_performance_tests
+	run_redirect_performance_tests
+
 # SQL Migrations
 
 migrate_gateway:
