@@ -17,3 +17,7 @@ Diagrams:
 ## Kubernetes
 
 protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative proto/shortener/shortener.proto
+
+The goal of this branch is:
+- switch from gorm and go-migrate to sqlc, pgx and goose without losing data
+- update models, tables and dates

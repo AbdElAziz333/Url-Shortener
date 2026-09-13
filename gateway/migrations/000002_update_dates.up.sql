@@ -1,0 +1,8 @@
+ALTER TABLE users
+    ALTER COLUMN created_at TYPE TIMESTAMPTZ(0)
+    USING DATE_TRUNC('second', created_at),
+    ALTER COLUMN created_at SET DEFAULT CURRENT_TIMESTAMP(0),
+    
+    ALTER COLUMN updated_at TYPE TIMESTAMPTZ(0)
+    USING DATE_TRUNC('second', updated_at),
+    ALTER COLUMN updated_at SET DEFAULT CURRENT_TIMESTAMP(0);
