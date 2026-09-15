@@ -16,5 +16,3 @@ data:
   POSTGRES_USER: "aziz"
   REDIS_ADDR: "redis-master:6379"
   REDIS_USER: "default"
-  KAFKA_BROKERS: "kafka:9092"
-  KAFKA_GROUP_ID: "redirect-service"

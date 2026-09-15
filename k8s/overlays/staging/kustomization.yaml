@@ -13,5 +13,3 @@ images:
     newTag: staging
   - name: abdelaziz333/redirect
     newTag: staging
-  - name: abdelaziz333/analytics
-    newTag: staging

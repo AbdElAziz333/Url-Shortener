@@ -49,13 +49,6 @@ spec:
                 name: redirect
                 port:
                   number: 8082
-          - path: /analytics/health
-            pathType: Prefix
-            backend:
-              service:
-                name: analytics
-                port:
-                  number: 8083
           - path: /
             pathType: Prefix
             backend:

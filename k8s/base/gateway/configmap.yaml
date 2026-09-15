@@ -13,7 +13,6 @@ data:
   SERVICE_PORT: "8080"
   SHORTENER_SERVICE_URL: "http://shortener:8081"
   REDIRECT_SERVICE_URL: "http://redirect:8082"
-  ANALYTICS_SERVICE_URL: "http://analytics:8083"
   POSTGRES_HOST: "postgres"
   POSTGRES_DB: "gateway"
   POSTGRES_USER: "aziz"

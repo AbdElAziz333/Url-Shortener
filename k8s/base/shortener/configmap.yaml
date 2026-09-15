@@ -14,5 +14,3 @@ data:
   POSTGRES_HOST: "postgres"
   POSTGRES_DB: "shortener"
   POSTGRES_USER: "aziz"
-  KAFKA_BROKERS: "kafka:9092"
-  KAFKA_GROUP_ID: "shortener-service"

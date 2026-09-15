@@ -6,9 +6,7 @@ namespace: url-shortener
 resources:
   - namespace.yaml
   - postgres-sealed-secret.yaml
-  - mongo-sealed-secret.yaml
   - redis-sealed-secret.yaml
-  # - kafka-topics-job.yaml
   - gateway/deployment.yaml
   - gateway/service.yaml
   - gateway/configmap.yaml
@@ -27,12 +25,6 @@ resources:
   # - redirect/secret.yaml  # Replaced with SealedSecret
   - redirect/sealed-secret.yaml  # Add after encrypting with kubeseal
   - redirect/hpa.yaml
-  - analytics/deployment.yaml
-  - analytics/service.yaml
-  - analytics/configmap.yaml
-  # - analytics/secret.yaml  # Replaced with SealedSecret
-  - analytics/sealed-secret.yaml  # Add after encrypting with kubeseal
-  - analytics/hpa.yaml
 
 labels:
   - includeSelectors: true

@@ -15,5 +15,3 @@ images:
     newTag: prod
   - name: abdelaziz333/redirect
     newTag: prod
-  - name: abdelaziz333/analytics
-    newTag: prod
