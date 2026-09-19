@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	sqlcgen "aziz.dev/gateway/internal/postgres/sqlc"
 	"aziz.dev/gateway/internal/security"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
@@ -39,6 +40,7 @@ func (s *service) Register(ctx context.Context, r *RegisterRequest) error {
 		log.WithError(err).Error("Failed to check existing user")
 		return err
 	}
+	
 	if existing != nil {
 		log.Warn("Email already in use")
 		return errors.New("email already in use")
@@ -50,7 +52,7 @@ func (s *service) Register(ctx context.Context, r *RegisterRequest) error {
 		return err
 	}
 
-	user := User{
+	user := sqlcgen.User{
 		Email: r.Email,
 		PasswordHash: string(hashedPassword),
 		IsActive: true,
