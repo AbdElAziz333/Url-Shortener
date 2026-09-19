@@ -1,6 +1,6 @@
 services:
   gateway:
-    image: abdelaziz333/gateway:${APP_VERSION}
+    image: abdelaziz333/gateway:0.0.7
     ports:
       - "8080:8080"
     build:
@@ -36,7 +36,7 @@ services:
       - app
   
   shortener:
-    image: abdelaziz333/shortener:${APP_VERSION}
+    image: abdelaziz333/shortener:0.0.7
     ports:
       - "8081:8081"
       - "50051:50051"
@@ -63,7 +63,7 @@ services:
       - app
 
   redirect:
-    image: abdelaziz333/redirect:${APP_VERSION}
+    image: abdelaziz333/redirect:0.0.7
     ports:
       - "8082:8082"
       - "50052:50052"
