@@ -1,6 +1,10 @@
 package link
 
-import "time"
+import (
+	"time"
+
+	sqlcgen "aziz.dev/shortener/internal/postgres/sqlc"
+)
 
 type Dto struct {
 	Code        string     `json:"code"`
@@ -25,10 +29,10 @@ type UpdateAliasDto struct {
 	CustomAlias string `json:"custom_alias" binding:"required"`
 }
 
-func mapToDto(l *Link) Dto {
+func mapToDto(l sqlcgen.Link) Dto {
 	return Dto{
 		Code:        l.Code,
-		OriginalURL: l.OriginalURL,
+		OriginalURL: l.OriginalUrl,
 		CustomAlias: l.CustomAlias,
 		ExpiresAt:   l.ExpiresAt,
 		IsActive:    l.IsActive,

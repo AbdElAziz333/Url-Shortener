@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	sqlcgen "aziz.dev/shortener/internal/postgres/sqlc"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
@@ -39,8 +40,8 @@ func (s *service) GetAll(ctx context.Context, userID uuid.UUID) ([]Dto, error) {
 	}
 
 	var dtos []Dto
-	for _, l := range *links {
-		dtos = append(dtos, mapToDto(&l))
+	for _, l := range links {
+		dtos = append(dtos, mapToDto(l))
 	}
 
 	logrus.WithField("user_id", userID).WithField("count", len(dtos)).Info("Successfully fetched links")
@@ -58,6 +59,7 @@ func (s *service) Create(ctx context.Context, userID uuid.UUID, req CreateReques
 			logrus.WithError(err).Error("Failed to generate random code")
 			return nil, err
 		}
+		
 		logrus.WithField("code", code).Debug("Generated random code")
 	}
 
@@ -69,20 +71,23 @@ func (s *service) Create(ctx context.Context, userID uuid.UUID, req CreateReques
 		customAlias = &req.CustomAlias
 	}
 
-	link := &Link{
+	arg := sqlcgen.CreateLinkParams{
 		UserID:      userID,
 		Code:        code,
-		OriginalURL: req.OriginalURL,
+		OriginalUrl: req.OriginalURL,
 		CustomAlias: customAlias,
 		ExpiresAt:   req.ExpiresAt,
 		IsActive:    true,
 		CreatedAt:   time.Now(),
 	}
 
-	if err := s.repo.Create(ctx, link); err != nil {
+	result, err := s.repo.Create(ctx, arg)
+
+	if err != nil {
 		if req.CustomAlias == "" && (strings.Contains(err.Error(), "duplicate key") || strings.Contains(err.Error(), "23505")) {
 			logrus.WithField("code", code).Warn("Hash collision detected")
 		}
+
 		logrus.WithError(err).Error("Failed to create link")
 		return nil, err
 	}
@@ -90,12 +95,12 @@ func (s *service) Create(ctx context.Context, userID uuid.UUID, req CreateReques
 	logrus.WithField("user_id", userID).WithField("code", code).Info("Successfully created link")
 
 	return &Dto{
-		Code:        link.Code,
-		OriginalURL: link.OriginalURL,
-		CustomAlias: link.CustomAlias,
-		ExpiresAt:   link.ExpiresAt,
-		IsActive:    link.IsActive,
-		CreatedAt:   link.CreatedAt,
+		Code:        result.Code,
+		OriginalURL: result.OriginalUrl,
+		CustomAlias: result.CustomAlias,
+		ExpiresAt:   result.ExpiresAt,
+		IsActive:    result.IsActive,
+		CreatedAt:   result.CreatedAt,
 	}, nil
 }
 
@@ -108,8 +113,14 @@ func (s *service) UpdateExpiry(ctx context.Context, userID uuid.UUID, code strin
 	}
 
 	link.ExpiresAt = req.ExpiresAt
-	if err := s.repo.Update(ctx, link); err != nil {
-		logrus.WithError(err).Error("Failed to update link")
+	arg := sqlcgen.UpdateLinkParams{
+		ExpiresAt: link.ExpiresAt,
+	}
+
+	id, err := s.repo.Update(ctx, arg)
+
+	if err != nil {
+		logrus.WithError(err).Error("Failed to update link with id:", id)
 		return err
 	}
 
@@ -118,27 +129,43 @@ func (s *service) UpdateExpiry(ctx context.Context, userID uuid.UUID, code strin
 }
 
 func (s *service) Delete(ctx context.Context, userID uuid.UUID, code string) error {
-	logrus.WithField("user_id", userID).WithField("code", code).Info("Deleting link")
-	link, err := s.repo.FindByCodeAndUserID(ctx, code, userID)
-	if err != nil {
-		logrus.WithError(err).WithField("user_id", userID).WithField("code", code).Error("Failed to find link")
-		return errors.New("link not found or unauthorized")
-	}
+    logrus.WithField("user_id", userID).WithField("code", code).Info("Deleting link")
+    
+    link, err := s.repo.FindByCodeAndUserID(ctx, code, userID)
+    if err != nil {
+        logrus.WithError(err).WithField("user_id", userID).WithField("code", code).Error("Failed to find link")
+        return errors.New("link not found or unauthorized")
+    }
 
-	link.IsActive = false
+    now := time.Now().UTC()
 
-	if err := s.repo.Update(ctx, link); err != nil {
-		logrus.WithError(err).Error("Failed to delete link")
-		return err
-	}
+    arg := sqlcgen.UpdateLinkParams{
+        ID:          link.ID,
+        Code:        link.Code,
+        OriginalUrl: link.OriginalUrl,
+        CustomAlias: link.CustomAlias,
+        ExpiresAt:   &now, // Passes *time.Time correctly
+        IsActive:    false, // Soft-delete
+    }
 
-	logrus.WithField("user_id", userID).WithField("code", code).Info("Successfully deleted link")
-	return nil
+    rowsAffected, err := s.repo.Update(ctx, arg)
+    if err != nil {
+        logrus.WithError(err).Error("Failed to delete link")
+        return err
+    }
+
+    if rowsAffected == 0 {
+        return errors.New("link not found or already deleted")
+    }
+
+    logrus.WithField("user_id", userID).WithField("code", code).Info("Successfully deleted link")
+    return nil
 }
 
 func generateRandomCode(length int) (string, error) {
 	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	b := make([]byte, length)
+
 	for i := range b {
 		n, err := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
 		if err != nil {
@@ -146,5 +173,6 @@ func generateRandomCode(length int) (string, error) {
 		}
 		b[i] = charset[n.Int64()]
 	}
+
 	return string(b), nil
 }

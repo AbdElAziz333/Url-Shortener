@@ -5,10 +5,11 @@ import (
 	"errors"
 	"time"
 
+	sqlcgen "aziz.dev/shortener/internal/postgres/sqlc"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/sirupsen/logrus"
 	"github.com/sony/gobreaker"
-	"gorm.io/gorm"
 )
 
 type CircuitBreakerRepository struct {
@@ -33,10 +34,11 @@ func NewCircuitBreakerRepository(underlying Repository) Repository {
 			if err == nil {
 				return true
 			}
-			// gorm.ErrRecordNotFound is an expected business/lookup result, not a DB connection failure.
-			if errors.Is(err, gorm.ErrRecordNotFound) {
+			
+			if errors.Is(err, pgx.ErrNoRows) {
 				return true
 			}
+
 			return false
 		},
 	})
@@ -47,36 +49,41 @@ func NewCircuitBreakerRepository(underlying Repository) Repository {
 	}
 }
 
-func (r *CircuitBreakerRepository) FindAllByUserID(ctx context.Context, userID uuid.UUID, pagination Pagination) (*[]Link, error) {
+func (r *CircuitBreakerRepository) FindAllByUserID(ctx context.Context, userID uuid.UUID, pagination Pagination) ([]sqlcgen.Link, error) {
 	res, err := r.cb.Execute(func() (interface{}, error) {
 		return r.underlying.FindAllByUserID(ctx, userID, pagination)
 	})
+
 	if err != nil {
 		return nil, err
 	}
-	return res.(*[]Link), nil
+
+	return res.([]sqlcgen.Link), nil
 }
 
-func (r *CircuitBreakerRepository) FindByCodeAndUserID(ctx context.Context, code string, userID uuid.UUID) (*Link, error) {
+func (r *CircuitBreakerRepository) FindByCodeAndUserID(ctx context.Context, code string, userID uuid.UUID) (sqlcgen.Link, error) {
 	res, err := r.cb.Execute(func() (interface{}, error) {
 		return r.underlying.FindByCodeAndUserID(ctx, code, userID)
 	})
 	if err != nil {
-		return nil, err
+		return sqlcgen.Link{}, err
 	}
-	return res.(*Link), nil
+
+	return res.(sqlcgen.Link), nil
 }
 
-func (r *CircuitBreakerRepository) Create(ctx context.Context, link *Link) error {
+func (r *CircuitBreakerRepository) Create(ctx context.Context, arg sqlcgen.CreateLinkParams) (sqlcgen.Link, error) {
 	_, err := r.cb.Execute(func() (interface{}, error) {
-		return nil, r.underlying.Create(ctx, link)
+		return r.underlying.Create(ctx, arg)
 	})
-	return err
+
+	return sqlcgen.Link{}, err
 }
 
-func (r *CircuitBreakerRepository) Update(ctx context.Context, link *Link) error {
+func (r *CircuitBreakerRepository) Update(ctx context.Context, arg sqlcgen.UpdateLinkParams) (int64, error) {
 	_, err := r.cb.Execute(func() (interface{}, error) {
-		return nil, r.underlying.Update(ctx, link)
+		return r.underlying.Update(ctx, arg)
 	})
-	return err
+
+	return 0, err
 }

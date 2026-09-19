@@ -1,0 +1,40 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries: "sql/query.sql"
+    schema: "migrations"
+    gen:
+      go:
+        package: "sqlcgen"
+        out: "internal/postgres/sqlc"
+        sql_package: "pgx/v5"
+        overrides:
+          # Handle UUIDs
+          - db_type: "uuid"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+
+          # Handle NOT NULL timestamps
+          - db_type: "timestamptz"
+            nullable: false
+            go_type: "time.Time"
+
+          # Handle NULLABLE timestamps (*time.Time)
+          - db_type: "timestamptz"
+            nullable: true
+            go_type:
+              type: "time.Time"
+              pointer: true
+
+          # Handle NOT NULL CITEXT
+          - db_type: "citext"
+            nullable: false
+            go_type: "string"
+
+          # Handle NULLABLE CITEXT (*string)
+          - db_type: "citext"
+            nullable: true
+            go_type:
+              type: "string"
+              pointer: true

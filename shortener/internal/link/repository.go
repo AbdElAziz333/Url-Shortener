@@ -3,24 +3,25 @@ package link
 import (
 	"context"
 
+	sqlcgen "aziz.dev/shortener/internal/postgres/sqlc"
 	"github.com/google/uuid"
-	"gorm.io/gorm"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Repository interface {
-	FindAllByUserID(ctx context.Context, userID uuid.UUID, pagination Pagination) (*[]Link, error)
-	FindByCodeAndUserID(ctx context.Context, code string, userID uuid.UUID) (*Link, error)
-	Create(ctx context.Context, link *Link) error
-	Update(ctx context.Context, link *Link) error
+	FindAllByUserID(ctx context.Context, userID uuid.UUID, pagination Pagination) ([]sqlcgen.Link, error)
+	FindByCodeAndUserID(ctx context.Context, code string, userID uuid.UUID) (sqlcgen.Link, error)
+	Create(ctx context.Context, arg sqlcgen.CreateLinkParams) (sqlcgen.Link, error)
+	Update(ctx context.Context, arg sqlcgen.UpdateLinkParams) (int64, error)
 }
 
 type repository struct {
-	db *gorm.DB
+	queries *sqlcgen.Queries
 }
 
-func NewRepository(db *gorm.DB) Repository {
+func NewRepository(db *pgxpool.Pool) Repository {
 	return &repository{
-		db: db,
+		queries: sqlcgen.New(db),
 	}
 }
 
@@ -29,9 +30,7 @@ type Pagination struct {
 	PageSize int // e.g., 10 items per page
 }
 
-func (r *repository) FindAllByUserID(ctx context.Context, userID uuid.UUID, pagination Pagination) (*[]Link, error) {
-	var links []Link
-
+func (r *repository) FindAllByUserID(ctx context.Context, userID uuid.UUID, pagination Pagination) ([]sqlcgen.Link, error) {
 	if pagination.Page <= 0 {
 		pagination.Page = 1
 	}
@@ -45,56 +44,24 @@ func (r *repository) FindAllByUserID(ctx context.Context, userID uuid.UUID, pagi
     // Page 2: (2 - 1) * 10 = 10 (skip first 10 items)
 	offset := (pagination.Page - 1) * pagination.PageSize
 
-	err := r.db.WithContext(ctx).
-				Where("user_id = ? AND is_active = ?", userID, true).
-				Limit(pagination.PageSize).
-				Offset(offset).
-				Find(&links).
-				Error
-
-	return &links, err
-}
-
-func (r *repository) FindByCodeAndUserID(ctx context.Context, code string, userID uuid.UUID) (*Link, error) {
-	var link Link
-	err := r.db.WithContext(ctx).Where("code = ? AND user_id = ? AND is_active = ?", code, userID, true).First(&link).Error
-	if err != nil {
-		return nil, err
-	}
-
-	return &link, nil
-}
-
-func (r *repository) Create(ctx context.Context, link *Link) error {
-	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Create(link).Error; err != nil {
-			return err
-		}
-
-		return nil
+	return r.queries.FindAllByUserID(ctx, sqlcgen.FindAllByUserIDParams{
+		UserID: userID,
+		Limit: int32(pagination.PageSize),
+		Offset: int32(offset),
 	})
 }
 
-func (r *repository) Update(ctx context.Context, link *Link) error {
-	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// Avoid gorm.Save() here: depending on model/PK state it can fall back to INSERT,
-		// which breaks delete (is_active=false) and can violate PK constraints.
-		updates := map[string]any{
-			"code":         link.Code,
-			"original_url": link.OriginalURL,
-			"custom_alias": link.CustomAlias,
-			"expires_at":   link.ExpiresAt,
-			"is_active":    link.IsActive,
-		}
-
-		res := tx.Model(&Link{}).Where("id = ?", link.ID).Updates(updates)
-		if res.Error != nil {
-			return res.Error
-		}
-		if res.RowsAffected == 0 {
-			return gorm.ErrRecordNotFound
-		}
-
-		return nil
+func (r *repository) FindByCodeAndUserID(ctx context.Context, code string, userID uuid.UUID) (sqlcgen.Link, error) {
+	return r.queries.FindByCodeAndUserID(ctx, sqlcgen.FindByCodeAndUserIDParams{
+		Code: code,
+		UserID: userID,
 	})
+}
+
+func (r *repository) Create(ctx context.Context, arg sqlcgen.CreateLinkParams) (sqlcgen.Link, error) {
+	return r.queries.CreateLink(ctx, arg)
+}
+
+func (r *repository) Update(ctx context.Context, arg sqlcgen.UpdateLinkParams) (int64, error) {
+	return r.queries.UpdateLink(ctx, arg)
 }
