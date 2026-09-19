@@ -31,6 +31,7 @@ func (h *Handler) ResolveCode(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "code is required",
 		})
+		
 		return
 	}
 

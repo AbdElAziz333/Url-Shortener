@@ -5,9 +5,10 @@ import (
 	"errors"
 	"time"
 
+	sqlcgen "aziz.dev/redirect/internal/postgres/sqlc"
+	"github.com/jackc/pgx/v5"
 	"github.com/sirupsen/logrus"
 	"github.com/sony/gobreaker"
-	"gorm.io/gorm"
 )
 
 type CircuitBreakerRepository struct {
@@ -33,7 +34,7 @@ func NewCircuitBreakerRepository(underlying Repository) Repository {
 				return true
 			}
 			// gorm.ErrRecordNotFound and ErrNotFound are expected business/lookup results, not DB connection failures.
-			if errors.Is(err, gorm.ErrRecordNotFound) || errors.Is(err, ErrNotFound) {
+			if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, ErrNotFound) {
 				return true
 			}
 			return false
@@ -46,12 +47,13 @@ func NewCircuitBreakerRepository(underlying Repository) Repository {
 	}
 }
 
-func (r *CircuitBreakerRepository) Find(ctx context.Context, code string) (*Link, error) {
+func (r *CircuitBreakerRepository) Find(ctx context.Context, code string) (*sqlcgen.Link, error) {
 	res, err := r.cb.Execute(func() (interface{}, error) {
 		return r.underlying.Find(ctx, code)
 	})
 	if err != nil {
 		return nil, err
 	}
-	return res.(*Link), nil
+
+	return res.(*sqlcgen.Link), nil
 }

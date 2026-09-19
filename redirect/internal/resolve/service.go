@@ -62,6 +62,7 @@ func (s *service) ResolveCode(ctx context.Context, code string) (*Dto, error) {
 	}
 
 	// Validate: must be active and not past its expiry.
+	// err: link.ExpiresAt.Before undefined (type **time.Time has no field or method Before)compilerMissingFieldOrMethod
 	if !link.IsActive || (link.ExpiresAt != nil && link.ExpiresAt.Before(time.Now())) {
 		logrus.WithField("code", code).Warn("Link is inactive or expired")
 		return nil, ErrLinkInactive
@@ -69,9 +70,10 @@ func (s *service) ResolveCode(ctx context.Context, code string) (*Dto, error) {
 
 	// Write-back to cache with a TTL that matches the link's remaining lifetime.
 	if link.ExpiresAt != nil {
+		// err: cannot use *link.ExpiresAt (variable of type *time.Time) as time.Time value in argument to time.UntilcompilerIncompatibleAssign
 		if ttl := time.Until(*link.ExpiresAt); ttl > 0 {
 			// Best-effort — a cache write failure must never break the redirect.
-			if err := s.cache.Set(ctx, code, link.OriginalURL, ttl).Err(); err != nil {
+			if err := s.cache.Set(ctx, code, link.OriginalUrl, ttl).Err(); err != nil {
 				logrus.WithError(err).WithField("code", code).Warn("Failed to write to cache")
 			} else {
 				logrus.WithField("code", code).Info("Successfully wrote to cache")
@@ -81,6 +83,6 @@ func (s *service) ResolveCode(ctx context.Context, code string) (*Dto, error) {
 
 	return &Dto{
 		Code:        link.Code,
-		OriginalURL: link.OriginalURL,
+		OriginalURL: link.OriginalUrl,
 	}, nil
 }

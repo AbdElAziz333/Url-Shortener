@@ -5,31 +5,34 @@ import (
 	"errors"
 	"fmt"
 
-	"gorm.io/gorm"
+	sqlcgen "aziz.dev/redirect/internal/postgres/sqlc"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 var ErrNotFound = errors.New("link not found")
 
 type Repository interface {
-	Find(ctx context.Context, code string) (*Link, error)
+	Find(ctx context.Context, code string) (*sqlcgen.Link, error)
 }
  
 type repository struct {
-	db *gorm.DB
-}
- 
-func NewRepository(db *gorm.DB) Repository {
-	return &repository{db: db}
+	queries *sqlcgen.Queries
 }
 
-func (r *repository) Find(ctx context.Context, code string) (*Link, error) {
-	var link Link
- 
-	err := r.db.WithContext(ctx).Where("code = ?", code).First(&link).Error
+func NewRepository(db *pgxpool.Pool) Repository {
+	return &repository{
+		queries: sqlcgen.New(db),
+	}
+}
+
+func (r *repository) Find(ctx context.Context, code string) (*sqlcgen.Link, error) {
+	link, err := r.queries.FindByCode(ctx, code)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, fmt.Errorf("%w: %s", ErrNotFound, code)
 		}
+		
 		return nil, err
 	}
  
