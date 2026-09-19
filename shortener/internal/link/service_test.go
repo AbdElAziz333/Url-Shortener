@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	sqlcgen "aziz.dev/shortener/internal/postgres/sqlc"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -15,30 +16,32 @@ type MockRepository struct {
 	mock.Mock
 }
 
-func (m *MockRepository) FindAllByUserID(ctx context.Context, userID uuid.UUID, pagination Pagination) (*[]Link, error) {
+func (m *MockRepository) FindAllByUserID(ctx context.Context, userID uuid.UUID, pagination Pagination) ([]sqlcgen.Link, error) {
 	args := m.Called(ctx, userID, pagination)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*[]Link), args.Error(1)
+
+	return args.Get(0).([]sqlcgen.Link), args.Error(1)
 }
 
-func (m *MockRepository) FindByCodeAndUserID(ctx context.Context, code string, userID uuid.UUID) (*Link, error) {
+func (m *MockRepository) FindByCodeAndUserID(ctx context.Context, code string, userID uuid.UUID) (sqlcgen.Link, error) {
 	args := m.Called(ctx, code, userID)
 	if args.Get(0) == nil {
-		return nil, args.Error(1)
+		return sqlcgen.Link{}, args.Error(1)
 	}
-	return args.Get(0).(*Link), args.Error(1)
+
+	return args.Get(0).(sqlcgen.Link), args.Error(1)
 }
 
-func (m *MockRepository) Create(ctx context.Context, link *Link) error {
-	args := m.Called(ctx, link)
-	return args.Error(0)
+func (m *MockRepository) Create(ctx context.Context, arg sqlcgen.CreateLinkParams) (sqlcgen.Link, error) {
+	args := m.Called(ctx, arg)
+	return sqlcgen.Link{}, args.Error(0)
 }
 
-func (m *MockRepository) Update(ctx context.Context, link *Link) error {
-	args := m.Called(ctx, link)
-	return args.Error(0)
+func (m *MockRepository) Update(ctx context.Context, arg sqlcgen.UpdateLinkParams) (int64, error) {
+	args := m.Called(ctx, arg)
+	return 0, args.Error(0)
 }
 
 // --- GetAll Tests ---
@@ -49,9 +52,9 @@ func TestService_GetAll_Success(t *testing.T) {
 	userID := validUserID()
 	now := time.Now()
 
-	links := &[]Link{
-		{Code: "abc", OriginalURL: "https://example.com", IsActive: true, CreatedAt: now},
-		{Code: "def", OriginalURL: "https://another.com", IsActive: true, CreatedAt: now},
+	links := &[]sqlcgen.Link{
+		{Code: "abc", OriginalUrl: "https://example.com", IsActive: true, CreatedAt: now},
+		{Code: "def", OriginalUrl: "https://another.com", IsActive: true, CreatedAt: now},
 	}
 	repo.On("FindAllByUserID", mock.Anything, userID, mock.Anything).Return(links, nil)
 
@@ -69,7 +72,7 @@ func TestService_GetAll_Empty(t *testing.T) {
 	svc := NewService(repo)
 	userID := validUserID()
 
-	repo.On("FindAllByUserID", mock.Anything, userID, mock.Anything).Return(&[]Link{}, nil)
+	repo.On("FindAllByUserID", mock.Anything, userID, mock.Anything).Return(&[]sqlcgen.Link{}, nil)
 
 	dtos, err := svc.GetAll(context.Background(), userID)
 
@@ -186,9 +189,9 @@ func TestService_UpdateExpiry_Success(t *testing.T) {
 	now := time.Now()
 	exp := now.Add(24 * time.Hour)
 
-	existing := &Link{Code: code, UserID: userID, IsActive: true}
+	existing := &sqlcgen.Link{Code: code, UserID: userID, IsActive: true}
 	repo.On("FindByCodeAndUserID", mock.Anything, code, userID).Return(existing, nil)
-	repo.On("Update", mock.Anything, mock.MatchedBy(func(l *Link) bool {
+	repo.On("Update", mock.Anything, mock.MatchedBy(func(l *sqlcgen.Link) bool {
 		return l.ExpiresAt != nil && l.ExpiresAt.Equal(exp)
 	})).Return(nil)
 
@@ -222,7 +225,7 @@ func TestService_UpdateExpiry_UpdateFails(t *testing.T) {
 	code := "abc123"
 	exp := time.Now().Add(24 * time.Hour)
 
-	existing := &Link{Code: code, UserID: userID, IsActive: true}
+	existing := &sqlcgen.Link{Code: code, UserID: userID, IsActive: true}
 	repo.On("FindByCodeAndUserID", mock.Anything, code, userID).Return(existing, nil)
 	repo.On("Update", mock.Anything, mock.Anything).Return(errors.New("db error"))
 
@@ -240,9 +243,9 @@ func TestService_Delete_Success(t *testing.T) {
 	userID := validUserID()
 	code := "abc123"
 
-	existing := &Link{Code: code, UserID: userID, IsActive: true}
+	existing := &sqlcgen.Link{Code: code, UserID: userID, IsActive: true}
 	repo.On("FindByCodeAndUserID", mock.Anything, code, userID).Return(existing, nil)
-	repo.On("Update", mock.Anything, mock.MatchedBy(func(l *Link) bool {
+	repo.On("Update", mock.Anything, mock.MatchedBy(func(l *sqlcgen.Link) bool {
 		return !l.IsActive // soft delete
 	})).Return(nil)
 
@@ -274,7 +277,7 @@ func TestService_Delete_UpdateFails(t *testing.T) {
 	userID := validUserID()
 	code := "abc123"
 
-	existing := &Link{Code: code, UserID: userID, IsActive: true}
+	existing := &sqlcgen.Link{Code: code, UserID: userID, IsActive: true}
 	repo.On("FindByCodeAndUserID", mock.Anything, code, userID).Return(existing, nil)
 	repo.On("Update", mock.Anything, mock.Anything).Return(errors.New("db error"))
 
@@ -291,10 +294,10 @@ func TestService_Create_RandomCodeIsAlphanumeric(t *testing.T) {
 	svc := NewService(repo)
 	userID := validUserID()
 
-	var capturedLink *Link
+	var capturedLink *sqlcgen.Link
 	repo.On("Create", mock.Anything, mock.AnythingOfType("*link.Link")).
 		Run(func(args mock.Arguments) {
-			capturedLink = args.Get(1).(*Link)
+			capturedLink = args.Get(1).(*sqlcgen.Link)
 		}).
 		Return(nil)
 

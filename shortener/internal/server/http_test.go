@@ -54,17 +54,6 @@ func TestRouter_HealthEndpoint_ContentTypeIsJSON(t *testing.T) {
 	assert.Contains(t, w.Header().Get("Content-Type"), "application/json")
 }
 
-// --- Metrics endpoint ---
-
-func TestRouter_MetricsEndpoint_Returns200(t *testing.T) {
-	r := newRouter(t)
-	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
-	w := httptest.NewRecorder()
-	r.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusOK, w.Code)
-}
-
 // --- Route registration: link routes are mounted under /shortener/api/links ---
 
 func TestRouter_LinkRoutes_GetAllRequiresUserIDHeader(t *testing.T) {
@@ -114,20 +103,4 @@ func TestRouter_UnknownRoute_Returns404(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusNotFound, w.Code)
-}
-
-// --- Prometheus middleware: verify metrics path is excluded from shortener group ---
-
-func TestRouter_MetricsEndpoint_NotUnderShortenerGroup(t *testing.T) {
-	r := newRouter(t)
-	// /metrics must be reachable without the Prometheus middleware adding labels
-	// (it sits on the root router, not the shortenerGroup). A 200 here confirms
-	// it was registered on the right group.
-	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
-	w := httptest.NewRecorder()
-	r.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusOK, w.Code)
-	// Prometheus text exposition format
-	assert.Contains(t, w.Header().Get("Content-Type"), "text/plain")
 }

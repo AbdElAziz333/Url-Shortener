@@ -79,25 +79,6 @@ func TestRouter_Health_ContentTypeIsJSON(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Metrics endpoint
-// ---------------------------------------------------------------------------
-
-func TestRouter_Metrics_ReturnsOK(t *testing.T) {
-	r := newTestRouter(new(mockResolveService))
-	w := do(r, http.MethodGet, "/metrics")
-
-	assert.Equal(t, http.StatusOK, w.Code)
-}
-
-func TestRouter_Metrics_ReturnsPrometheusText(t *testing.T) {
-	r := newTestRouter(new(mockResolveService))
-	w := do(r, http.MethodGet, "/metrics")
-
-	// Prometheus text format always starts with comment lines or metric lines.
-	assert.Contains(t, w.Header().Get("Content-Type"), "text/plain")
-}
-
-// ---------------------------------------------------------------------------
 // Resolve routes (delegated to resolve.Handler)
 // ---------------------------------------------------------------------------
 

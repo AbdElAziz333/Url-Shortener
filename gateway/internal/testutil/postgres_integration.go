@@ -5,19 +5,18 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
-	gormpostgres "gorm.io/driver/postgres"
-	"gorm.io/gorm"
 )
 
-func NewPostgres(t *testing.T, ctx context.Context) *gorm.DB {
+func NewPostgres(t *testing.T, ctx context.Context) *pgxpool.Pool {
     t.Helper()
 
     postgresContainer, err := postgres.Run(ctx, "postgres:16-alpine",
-        postgres.WithDatabase("shortener_test"),
+        postgres.WithDatabase("gateway_test"),
         postgres.WithUsername("test"),
         postgres.WithPassword("test"),
         testcontainers.WithWaitStrategy(
@@ -35,7 +34,7 @@ func NewPostgres(t *testing.T, ctx context.Context) *gorm.DB {
     dsn, err := postgresContainer.ConnectionString(ctx, "sslmode=disable")
     require.NoError(t, err)
 
-    db, err := gorm.Open(gormpostgres.Open(dsn), &gorm.Config{})
+    db, err := pgxpool.New(ctx, dsn)
     require.NoError(t, err)
 
     return db

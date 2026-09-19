@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	sqlcgen "aziz.dev/gateway/internal/postgres/sqlc"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -17,15 +18,15 @@ type MockRepository struct {
 	mock.Mock
 }
 
-func (m *MockRepository) FindByEmail(ctx context.Context, email string) (*User, error) {
+func (m *MockRepository) FindByEmail(ctx context.Context, email string) (*sqlcgen.User, error) {
 	args := m.Called(ctx, email)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*User), args.Error(1)
+	return args.Get(0).(*sqlcgen.User), args.Error(1)
 }
 
-func (m *MockRepository) Create(ctx context.Context, u User) error {
+func (m *MockRepository) Create(ctx context.Context, u sqlcgen.User) error {
 	args := m.Called(ctx, u)
 	return args.Error(0)
 }
@@ -67,7 +68,7 @@ func TestService_Register_Success(t *testing.T) {
 func TestService_Register_EmailAlreadyInUse(t *testing.T) {
 	repo := new(MockRepository)
 	jwt := new(MockJWTService)
-	existing := &User{Email: "taken@example.com"}
+	existing := &sqlcgen.User{Email: "taken@example.com"}
 	repo.On("FindByEmail", mock.Anything, "taken@example.com").Return(existing, nil)
 
 	svc := NewService(repo, nil, jwt)
@@ -115,10 +116,10 @@ func TestService_Register_PasswordIsHashed(t *testing.T) {
 	jwt := new(MockJWTService)
 	repo.On("FindByEmail", mock.Anything, mock.Anything).Return(nil, nil)
 
-	var capturedUser User
-	repo.On("Create", mock.Anything, mock.AnythingOfType("User")).
+	var capturedUser sqlcgen.User
+	repo.On("Create", mock.Anything, mock.AnythingOfType("sqlcgen.User")).
 		Run(func(args mock.Arguments) {
-			capturedUser = args.Get(1).(User)
+			capturedUser = args.Get(1).(sqlcgen.User)
 		}).
 		Return(nil)
 
@@ -138,10 +139,10 @@ func TestService_Register_UserIsActive(t *testing.T) {
 	jwt := new(MockJWTService)
 	repo.On("FindByEmail", mock.Anything, mock.Anything).Return(nil, nil)
 
-	var capturedUser User
+	var capturedUser sqlcgen.User
 	repo.On("Create", mock.Anything, mock.AnythingOfType("User")).
 		Run(func(args mock.Arguments) {
-			capturedUser = args.Get(1).(User)
+			capturedUser = args.Get(1).(sqlcgen.User)
 		}).
 		Return(nil)
 
@@ -156,9 +157,10 @@ func TestService_Register_UserIsActive(t *testing.T) {
 
 // --- Login Tests ---
 
-func newHashedUser(email, password string) *User {
+func newHashedUser(email, password string) *sqlcgen.User {
 	hash, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
-	return &User{
+
+	return &sqlcgen.User{
 		ID:           uuid.Must(uuid.NewV7()),
 		Email:        email,
 		PasswordHash: string(hash),

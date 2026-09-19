@@ -3,20 +3,65 @@ package user
 import (
 	"context"
 	"testing"
+	"time"
 
+	sqlcgen "aziz.dev/gateway/internal/postgres/sqlc"
 	"aziz.dev/gateway/internal/testutil"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
 )
 
-func setupTestDB(t *testing.T) *gorm.DB {
+const userTableSchema = `
+	CREATE EXTENSION IF NOT EXISTS citext;
+
+	CREATE TABLE IF NOT EXISTS users (
+		id UUID NOT NULL PRIMARY KEY,
+		email CITEXT NOT NULL UNIQUE,
+		password_hash VARCHAR(255),
+		is_active BOOLEAN NOT NULL DEFAULT TRUE,
+		created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+	);
+`
+
+func setupTestDB(t *testing.T) *pgxpool.Pool {
 	t.Helper()
 	ctx := context.Background()
 	db := testutil.NewPostgres(t, ctx)
-	err := db.AutoMigrate(&User{})
+
+	_, err := db.Exec(ctx, userTableSchema)
 	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		_, _ = db.Exec(context.Background(), `DROP TABLE IF EXISTS users CASCADE;`)
+	})
+
 	return db
+}
+
+func insertUser(t *testing.T, db *pgxpool.Pool, u sqlcgen.User) {
+	t.Helper()
+	_, err := db.Exec(
+		context.Background(),
+		`INSERT INTO "user" (id, email, password_hash, is_active, created_at, updated_at)
+		 VALUES ($1, $2, $3, $4, $5, $6)`,
+		u.ID, u.Email, u.PasswordHash, u.IsActive, u.CreatedAt, u.UpdatedAt,
+	)
+	require.NoError(t, err)
+}
+
+func newTestUser(email, passwordHash string) sqlcgen.User {
+	now := time.Now().UTC()
+	return sqlcgen.User{
+		ID:           uuid.New(),
+		Email:        email,
+		PasswordHash: passwordHash,
+		IsActive:     true,
+		CreatedAt:    now,
+		UpdatedAt:    now,
+	}
 }
 
 // --- FindByEmail Integration Tests ---
@@ -35,13 +80,8 @@ func TestRepository_FindByEmail_Found(t *testing.T) {
 	db := setupTestDB(t)
 	repo := NewRepository(db)
 
-	u := User{
-		Email:        "found@example.com",
-		PasswordHash: "hash",
-		IsActive:     true,
-	}
-	err := db.Create(&u).Error
-	require.NoError(t, err)
+	u := newTestUser("found@example.com", "hash")
+	insertUser(t, db, u)
 
 	result, err := repo.FindByEmail(context.Background(), "found@example.com")
 
@@ -52,21 +92,17 @@ func TestRepository_FindByEmail_Found(t *testing.T) {
 	assert.True(t, result.IsActive)
 }
 
-func TestRepository_FindByEmail_CaseSensitive(t *testing.T) {
+func TestRepository_FindByEmail_CaseInsensitive(t *testing.T) {
 	db := setupTestDB(t)
 	repo := NewRepository(db)
 
-	u := User{
-		Email:        "CaseSensitive@example.com",
-		PasswordHash: "hash",
-		IsActive:     true,
-	}
-	db.Create(&u)
+	u := newTestUser("CaseSensitive@example.com", "hash")
+	insertUser(t, db, u)
 
 	result, err := repo.FindByEmail(context.Background(), "casesensitive@example.com")
 	assert.NoError(t, err)
-	// PostgreSQL default collation is case-sensitive; result should be nil
-	assert.Nil(t, result)
+	require.NotNil(t, result)
+	assert.Equal(t, "CaseSensitive@example.com", result.Email)
 }
 
 // --- Create Integration Tests ---
@@ -74,19 +110,30 @@ func TestRepository_FindByEmail_CaseSensitive(t *testing.T) {
 func TestRepository_Create_Success(t *testing.T) {
 	db := setupTestDB(t)
 	repo := NewRepository(db)
+	ctx := context.Background()
 
-	u := User{
+	u := sqlcgen.User{
 		Email:        "create@example.com",
 		PasswordHash: "hashed",
 		IsActive:     true,
 	}
 
-	err := repo.Create(context.Background(), u)
+	err := repo.Create(ctx, u)
 	assert.NoError(t, err)
 
-	// Verify it's actually persisted
-	var found User
-	err = db.Where("email = ?", "create@example.com").First(&found).Error
+	var found sqlcgen.User
+	err = db.QueryRow(ctx, `
+		SELECT id, email, password_hash, is_active, created_at, updated_at
+		FROM "user"
+		WHERE email = $1`, "create@example.com").Scan(
+		&found.ID,
+		&found.Email,
+		&found.PasswordHash,
+		&found.IsActive,
+		&found.CreatedAt,
+		&found.UpdatedAt,
+	)
+
 	assert.NoError(t, err)
 	assert.Equal(t, "create@example.com", found.Email)
 	assert.True(t, found.IsActive)
@@ -95,67 +142,62 @@ func TestRepository_Create_Success(t *testing.T) {
 func TestRepository_Create_SetsUUIDFromBeforeCreate(t *testing.T) {
 	db := setupTestDB(t)
 	repo := NewRepository(db)
+	ctx := context.Background()
 
-	u := User{
+	u := sqlcgen.User{
 		Email:        "uuid@example.com",
 		PasswordHash: "hash",
 		IsActive:     true,
 	}
 
-	err := repo.Create(context.Background(), u)
+	err := repo.Create(ctx, u)
 	require.NoError(t, err)
 
-	var found User
-	db.Where("email = ?", "uuid@example.com").First(&found)
-	assert.NotEmpty(t, found.ID)
+	var foundID uuid.UUID
+	err = db.QueryRow(ctx, `SELECT id FROM "user" WHERE email = $1`, u.Email).Scan(&foundID)
+	require.NoError(t, err)
+	assert.NotEqual(t, uuid.Nil, foundID)
 }
 
 func TestRepository_Create_SetsTimestamps(t *testing.T) {
 	db := setupTestDB(t)
 	repo := NewRepository(db)
+	ctx := context.Background()
 
-	u := User{
+	u := sqlcgen.User{
 		Email:        "timestamps@example.com",
 		PasswordHash: "hash",
 		IsActive:     true,
 	}
 
-	err := repo.Create(context.Background(), u)
+	err := repo.Create(ctx, u)
 	require.NoError(t, err)
 
-	var found User
-	db.Where("email = ?", "timestamps@example.com").First(&found)
-	assert.False(t, found.CreatedAt.IsZero(), "CreatedAt should be set")
-	assert.False(t, found.UpdatedAt.IsZero(), "UpdatedAt should be set")
+	var createdAt, updatedAt time.Time
+	err = db.QueryRow(ctx, `SELECT created_at, updated_at FROM "user" WHERE email = $1`, "timestamps@example.com").Scan(&createdAt, &updatedAt)
+	require.NoError(t, err)
+
+	assert.False(t, createdAt.IsZero(), "CreatedAt should be set")
+	assert.False(t, updatedAt.IsZero(), "UpdatedAt should be set")
 }
 
 func TestRepository_Create_DuplicateEmail(t *testing.T) {
 	db := setupTestDB(t)
 	repo := NewRepository(db)
+	ctx := context.Background()
 
-	u := User{
-		Email:        "dup@example.com",
-		PasswordHash: "hash",
-		IsActive:     true,
-	}
-
-	err := repo.Create(context.Background(), u)
+	u := newTestUser("dup@example.com", "hash")
+	err := repo.Create(ctx, u)
 	require.NoError(t, err)
 
-	// Second create with same email — behaviour depends on DB constraints.
-	// Without a UNIQUE constraint in the schema, GORM will insert a second row.
-	// If a unique index exists, this should return an error.
-	u2 := User{
-		Email:        "dup@example.com",
-		PasswordHash: "hash2",
-		IsActive:     true,
-	}
-	_ = repo.Create(context.Background(), u2)
+	u2 := newTestUser("dup@example.com", "hash2")
+	err = repo.Create(ctx, u2)
+	assert.Error(t, err, "expected error on unique constraint violation")
 
 	var count int64
-	db.Model(&User{}).Where("email = ?", "dup@example.com").Count(&count)
-	// Adjust assertion depending on whether unique index is applied in schema
-	assert.GreaterOrEqual(t, count, int64(1))
+	err = db.QueryRow(ctx, `SELECT COUNT(*) FROM "user" WHERE email = $1`, "dup@example.com").Scan(&count)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), count)
 }
 
 // --- Round-trip Integration Test ---
@@ -165,7 +207,7 @@ func TestRepository_CreateThenFindByEmail(t *testing.T) {
 	repo := NewRepository(db)
 	ctx := context.Background()
 
-	original := User{
+	original := sqlcgen.User{
 		Email:        "roundtrip@example.com",
 		PasswordHash: "secureHash",
 		IsActive:     true,

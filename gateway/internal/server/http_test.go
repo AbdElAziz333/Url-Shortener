@@ -81,21 +81,6 @@ func TestHealthHandler_ReturnsJSON(t *testing.T) {
 	assert.Contains(t, w.Header().Get("Content-Type"), "application/json")
 }
 
-// --- Metrics Endpoint ---
-
-func TestMetricsHandler_Returns200(t *testing.T) {
-	r := newTestRouter()
-	w := get(r, "/metrics")
-	assert.Equal(t, http.StatusOK, w.Code)
-}
-
-func TestMetricsHandler_ReturnsPrometheusFormat(t *testing.T) {
-	r := newTestRouter()
-	w := get(r, "/metrics")
-	// Prometheus text format always includes this line
-	assert.Contains(t, w.Body.String(), "# HELP")
-}
-
 // --- Route Registration ---
 
 func TestNewRouter_UserAuthRoutesAreRegistered(t *testing.T) {
@@ -114,7 +99,6 @@ func TestNewRouter_UserAuthRoutesAreRegistered(t *testing.T) {
 		{"POST", "/gateway/auth/refresh"},
 		{"POST", "/gateway/auth/logout"},
 		{"GET", "/gateway/health"},
-		{"GET", "/metrics"},
 	}
 	for _, e := range expected {
 		assert.True(t, registered[e], "expected route %s %s to be registered", e.method, e.path)
@@ -165,16 +149,4 @@ func TestRouter_RecoveryMiddleware_HandlesHandlerPanic(t *testing.T) {
 		r.ServeHTTP(w, req)
 	})
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
-}
-
-func TestRouter_PrometheusMiddleware_TracksGatewayRoutes(t *testing.T) {
-	r := newTestRouter()
-
-	// Hit a gateway route so the middleware records metrics
-	get(r, "/gateway/health")
-
-	// Then confirm /metrics has data (non-empty body beyond just comments)
-	w := get(r, "/metrics")
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.NotEmpty(t, w.Body.String())
 }

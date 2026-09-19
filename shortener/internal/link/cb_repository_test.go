@@ -5,39 +5,40 @@ import (
 	"errors"
 	"testing"
 
+	sqlcgen "aziz.dev/shortener/internal/postgres/sqlc"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/sony/gobreaker"
 	"github.com/stretchr/testify/assert"
-	"gorm.io/gorm"
 )
 
 type mockRepository struct {
-	findAllByUserIDFunc     func(ctx context.Context, userID uuid.UUID, pagination Pagination) (*[]Link, error)
-	findByCodeAndUserIDFunc func(ctx context.Context, code string, userID uuid.UUID) (*Link, error)
-	createFunc              func(ctx context.Context, link *Link) error
-	updateFunc              func(ctx context.Context, link *Link) error
+	findAllByUserIDFunc     func(ctx context.Context, userID uuid.UUID, pagination Pagination) ([]sqlcgen.Link, error)
+	findByCodeAndUserIDFunc func(ctx context.Context, code string, userID uuid.UUID) (sqlcgen.Link, error)
+	createFunc              func(ctx context.Context, link *sqlcgen.Link) (sqlcgen.Link, error)
+	updateFunc              func(ctx context.Context, link *sqlcgen.Link) (int64, error)
 }
 
-func (m *mockRepository) FindAllByUserID(ctx context.Context, userID uuid.UUID, pagination Pagination) (*[]Link, error) {
+func (m *mockRepository) FindAllByUserID(ctx context.Context, userID uuid.UUID, pagination Pagination) ([]sqlcgen.Link, error) {
 	return m.findAllByUserIDFunc(ctx, userID, pagination)
 }
 
-func (m *mockRepository) FindByCodeAndUserID(ctx context.Context, code string, userID uuid.UUID) (*Link, error) {
+func (m *mockRepository) FindByCodeAndUserID(ctx context.Context, code string, userID uuid.UUID) (sqlcgen.Link, error) {
 	return m.findByCodeAndUserIDFunc(ctx, code, userID)
 }
 
-func (m *mockRepository) Create(ctx context.Context, link *Link) error {
+func (m *mockRepository) Create(ctx context.Context, link *sqlcgen.Link) (sqlcgen.Link, error) {
 	return m.createFunc(ctx, link)
 }
 
-func (m *mockRepository) Update(ctx context.Context, link *Link) error {
+func (m *mockRepository) Update(ctx context.Context, link *sqlcgen.Link) (int64, error) {
 	return m.updateFunc(ctx, link)
 }
 
 func TestCircuitBreakerRepository_Success(t *testing.T) {
 	mock := &mockRepository{
-		findByCodeAndUserIDFunc: func(ctx context.Context, code string, userID uuid.UUID) (*Link, error) {
-			return &Link{Code: "test-code"}, nil
+		findByCodeAndUserIDFunc: func(ctx context.Context, code string, userID uuid.UUID) (sqlcgen.Link, error) {
+			return sqlcgen.Link{Code: "test-code"}, nil
 		},
 	}
 
@@ -50,8 +51,8 @@ func TestCircuitBreakerRepository_Success(t *testing.T) {
 
 func TestCircuitBreakerRepository_TripsAndFailsFast(t *testing.T) {
 	mock := &mockRepository{
-		findByCodeAndUserIDFunc: func(ctx context.Context, code string, userID uuid.UUID) (*Link, error) {
-			return nil, errors.New("db crash")
+		findByCodeAndUserIDFunc: func(ctx context.Context, code string, userID uuid.UUID) (sqlcgen.Link, error) {
+			return sqlcgen.Link{}, errors.New("db crash")
 		},
 	}
 
@@ -72,20 +73,19 @@ func TestCircuitBreakerRepository_TripsAndFailsFast(t *testing.T) {
 
 func TestCircuitBreakerRepository_DoesNotTripOnRecordNotFound(t *testing.T) {
 	mock := &mockRepository{
-		findByCodeAndUserIDFunc: func(ctx context.Context, code string, userID uuid.UUID) (*Link, error) {
-			return nil, gorm.ErrRecordNotFound
+		findByCodeAndUserIDFunc: func(ctx context.Context, code string, userID uuid.UUID) (sqlcgen.Link, error) {
+			return sqlcgen.Link{}, pgx.ErrNoRows
 		},
 	}
 
 	cbRepo := NewCircuitBreakerRepository(mock)
 
-	// Send 5 gorm.ErrRecordNotFound errors. They should NOT trip the breaker.
 	for i := 0; i < 5; i++ {
 		_, err := cbRepo.FindByCodeAndUserID(context.Background(), "test-code", uuid.New())
-		assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
+		assert.True(t, errors.Is(err, pgx.ErrNoRows))
 	}
 
-	// 6th request should still call the mock (and return gorm.ErrRecordNotFound) rather than ErrOpenState
+	// 6th request should still call the mock (and return pgx.ErrNoRows) rather than ErrOpenState
 	_, err := cbRepo.FindByCodeAndUserID(context.Background(), "test-code", uuid.New())
-	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
+	assert.True(t, errors.Is(err, pgx.ErrNoRows))
 }

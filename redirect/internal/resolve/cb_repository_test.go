@@ -5,22 +5,23 @@ import (
 	"errors"
 	"testing"
 
+	sqlcgen "aziz.dev/redirect/internal/postgres/sqlc"
 	"github.com/sony/gobreaker"
 	"github.com/stretchr/testify/assert"
 )
 
 type mockResolveRepository struct {
-	findFunc func(ctx context.Context, code string) (*Link, error)
+	findFunc func(ctx context.Context, code string) (*sqlcgen.Link, error)
 }
 
-func (m *mockResolveRepository) Find(ctx context.Context, code string) (*Link, error) {
+func (m *mockResolveRepository) Find(ctx context.Context, code string) (*sqlcgen.Link, error) {
 	return m.findFunc(ctx, code)
 }
 
 func TestCircuitBreakerRepository_Success(t *testing.T) {
 	mock := &mockResolveRepository{
-		findFunc: func(ctx context.Context, code string) (*Link, error) {
-			return &Link{Code: "test-code"}, nil
+		findFunc: func(ctx context.Context, code string) (*sqlcgen.Link, error) {
+			return &sqlcgen.Link{Code: "test-code"}, nil
 		},
 	}
 
@@ -33,7 +34,7 @@ func TestCircuitBreakerRepository_Success(t *testing.T) {
 
 func TestCircuitBreakerRepository_TripsAndFailsFast(t *testing.T) {
 	mock := &mockResolveRepository{
-		findFunc: func(ctx context.Context, code string) (*Link, error) {
+		findFunc: func(ctx context.Context, code string) (*sqlcgen.Link, error) {
 			return nil, errors.New("db crash")
 		},
 	}
@@ -55,7 +56,7 @@ func TestCircuitBreakerRepository_TripsAndFailsFast(t *testing.T) {
 
 func TestCircuitBreakerRepository_DoesNotTripOnRecordNotFound(t *testing.T) {
 	mock := &mockResolveRepository{
-		findFunc: func(ctx context.Context, code string) (*Link, error) {
+		findFunc: func(ctx context.Context, code string) (*sqlcgen.Link, error) {
 			return nil, ErrNotFound
 		},
 	}

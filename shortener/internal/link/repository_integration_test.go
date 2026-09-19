@@ -5,30 +5,53 @@ import (
 	"testing"
 	"time"
 
+	sqlcgen "aziz.dev/shortener/internal/postgres/sqlc"
 	"aziz.dev/shortener/internal/testutil"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 )
 
+const linkTableSchema = `
+	CREATE EXTENSION IF NOT EXISTS citext;
+
+	CREATE TABLE IF NOT EXISTS link (
+		id UUID NOT NULL PRIMARY KEY,
+		email CITEXT NOT NULL UNIQUE,
+		password_hash VARCHAR(255),
+		is_active BOOLEAN NOT NULL DEFAULT TRUE,
+		created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+	);
+`
+
 // setupTestDB provisions a real Postgres container, runs AutoMigrate, and
 // registers cleanup via t.Cleanup — no manual teardown needed in tests.
-func setupTestDB(t *testing.T) *gorm.DB {
+
+func setupTestDB(t *testing.T) *pgxpool.Pool {
 	t.Helper()
 	ctx := context.Background()
 	db := testutil.NewPostgres(t, ctx)
-	require.NoError(t, db.AutoMigrate(&Link{}))
+
+	_, err := db.Exec(ctx, linkTableSchema)
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		_, _ = db.Exec(context.Background(), `DROP TABLE IF EXISTS link CASCADE;`)
+	})
+
 	return db
 }
 
-func makeLink(userID uuid.UUID, code string) *Link {
+func makeLink(userID uuid.UUID, code string) *sqlcgen.Link {
 	id, _ := uuid.NewV7()
-	return &Link{
+	return &sqlcgen.Link{
 		ID:          id,
 		UserID:      userID,
 		Code:        code,
-		OriginalURL: "https://example.com/" + code,
+		OriginalUrl: "https://example.com/" + code,
 		IsActive:    true,
 		CreatedAt:   time.Now(),
 	}
@@ -142,10 +165,10 @@ func TestRepo_Create_Success(t *testing.T) {
 	ctx := context.Background()
 	userID := validUserID()
 
-	link := &Link{
+	link := &sqlcgen.Link{
 		UserID:      userID,
 		Code:        "newcode",
-		OriginalURL: "https://example.com",
+		OriginalUrl: "https://example.com",
 		IsActive:    true,
 	}
 
@@ -153,7 +176,7 @@ func TestRepo_Create_Success(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEqual(t, uuid.Nil, link.ID) // BeforeCreate sets ID
 
-	var found Link
+	var found sqlcgen.Link
 	db.First(&found, "code = ?", "newcode")
 	assert.Equal(t, "https://example.com", found.OriginalURL)
 }
@@ -167,10 +190,10 @@ func TestRepo_Create_DuplicateCodeFails(t *testing.T) {
 	link1 := makeLink(userID, "dupcode")
 	db.Create(link1)
 
-	link2 := &Link{
+	link2 := &sqlcgen.Link{
 		UserID:      userID,
 		Code:        "dupcode", // same unique code — must fail on Postgres uniqueIndex
-		OriginalURL: "https://other.com",
+		OriginalUrl: "https://other.com",
 		IsActive:    true,
 	}
 	err := repo.Create(ctx, link2)
@@ -187,12 +210,13 @@ func TestRepo_Create_SetsCreatedAt(t *testing.T) {
 	userID := validUserID()
 
 	before := time.Now().Add(-time.Second)
-	link := &Link{
+	link := &sqlcgen.Link{
 		UserID:      userID,
 		Code:        "timecode",
-		OriginalURL: "https://example.com",
+		OriginalUrl: "https://example.com",
 		IsActive:    true,
 	}
+
 	err := repo.Create(ctx, link)
 	require.NoError(t, err)
 
@@ -212,14 +236,14 @@ func TestRepo_Update_Success(t *testing.T) {
 
 	exp := time.Now().Add(24 * time.Hour).UTC().Truncate(time.Microsecond) // Postgres stores µs precision
 	link.ExpiresAt = &exp
-	link.OriginalURL = "https://updated.com"
+	link.OriginalUrl = "https://updated.com"
 
 	err := repo.Update(ctx, link)
 	require.NoError(t, err)
 
-	var found Link
+	var found sqlcgen.Link
 	db.First(&found, "code = ?", "updateme")
-	assert.Equal(t, "https://updated.com", found.OriginalURL)
+	assert.Equal(t, "https://updated.com", found.OriginalUrl)
 	assert.NotNil(t, found.ExpiresAt)
 }
 
@@ -236,7 +260,7 @@ func TestRepo_Update_SoftDelete(t *testing.T) {
 	err := repo.Update(ctx, link)
 	require.NoError(t, err)
 
-	var found Link
+	var found sqlcgen.Link
 	db.First(&found, "code = ?", "deleteme")
 	assert.False(t, found.IsActive)
 }
@@ -246,10 +270,10 @@ func TestRepo_Update_NotFound(t *testing.T) {
 	repo := NewRepository(db)
 	ctx := context.Background()
 
-	ghost := &Link{
+	ghost := &sqlcgen.Link{
 		ID:          uuid.MustParse("00000000-0000-0000-0000-000000000099"),
 		Code:        "ghost",
-		OriginalURL: "https://ghost.com",
+		OriginalUrl: "https://ghost.com",
 		IsActive:    false,
 	}
 

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	sqlcgen "aziz.dev/redirect/internal/postgres/sqlc"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -16,12 +17,12 @@ type mockRepository struct {
 	mock.Mock
 }
 
-func (m *mockRepository) Find(ctx context.Context, code string) (*Link, error) {
+func (m *mockRepository) Find(ctx context.Context, code string) (*sqlcgen.Link, error) {
 	args := m.Called(ctx, code)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*Link), args.Error(1)
+	return args.Get(0).(*sqlcgen.Link), args.Error(1)
 }
 
 type mockRedisClient struct {
@@ -68,38 +69,38 @@ func errStatus(err error) *redis.StatusCmd {
 	return cmd
 }
 
-func activeLink(code, url string) *Link {
-	return &Link{
+func activeLink(code, url string) *sqlcgen.Link {
+	return &sqlcgen.Link{
 		Code:        code,
-		OriginalURL: url,
+		OriginalUrl: url,
 		IsActive:    true,
 		ExpiresAt:   nil,
 	}
 }
 
-func expiredLink(code, url string) *Link {
+func expiredLink(code, url string) *sqlcgen.Link {
 	past := time.Now().Add(-time.Hour)
-	return &Link{
+	return &sqlcgen.Link{
 		Code:        code,
-		OriginalURL: url,
+		OriginalUrl: url,
 		IsActive:    true,
 		ExpiresAt:   &past,
 	}
 }
 
-func inactiveLink(code, url string) *Link {
-	return &Link{
+func inactiveLink(code, url string) *sqlcgen.Link {
+	return &sqlcgen.Link{
 		Code:        code,
-		OriginalURL: url,
+		OriginalUrl: url,
 		IsActive:    false,
 	}
 }
 
-func futureTTLLink(code, url string, ttl time.Duration) *Link {
+func futureTTLLink(code, url string, ttl time.Duration) *sqlcgen.Link {
 	future := time.Now().Add(ttl)
-	return &Link{
+	return &sqlcgen.Link{
 		Code:        code,
-		OriginalURL: url,
+		OriginalUrl: url,
 		IsActive:    true,
 		ExpiresAt:   &future,
 	}
