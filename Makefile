@@ -3,6 +3,15 @@ ifneq (,$(wildcard .env))
 	export
 endif
 
+.PHONY: generate_proto \
+		run_gateway run_shortener run_redirect \
+		run_gateway_unit_tests run_shortener_unit_tests run_redirect_unit_tests run_all_unit_tests \
+		run_gateway_integration_tests run_shortener_integration_tests run_redirect_integration_tests run_all_integration_tests \
+		run_gateway_performance_tests run_shortener_performance_tests run_redirect_performance_tests run_all_performance_tests \
+		migrate_gateway migrate_shortener run_all_migrations \
+		docker_build_gateway docker_build_shortener docker_build_redirect build_each_separately \
+		docker_push_gateway docker_push_shortener docker_push_redirect docker_push_all
+
 # Protobuf
 
 generate_proto:
@@ -15,38 +24,30 @@ generate_proto:
 
 run_gateway:
 	cd gateway && go run cmd/main.go
-
 run_shortener:
 	cd shortener && go run cmd/main.go
-
 run_redirect:
 	cd redirect && go run cmd/main.go
 
 # Run Unit Tests
 
 run_gateway_unit_tests:
-	go test ./gateway/...
+	cd gateway && go test ./...
 run_shortener_unit_tests:
-	go test ./shortener/...
+	cd shortener && go test ./...
 run_redirect_unit_tests:
-	go test ./redirect/...
-run_all_unit_tests:
-	run_gateway_unit_tests
-	run_shortener_unit_tests
-	run_redirect_unit_tests
+	cd redirect && go test ./...
+run_all_unit_tests: run_gateway_unit_tests run_shortener_unit_tests run_redirect_unit_tests
 
 # Run Integration Tests
 
 run_gateway_integration_tests:
-	go test -tag=integration ./gateway/...
+	cd gateway && go test -tags=integration ./...
 run_shortener_integration_tests:
-	go test -tag=integration ./shortener/...
+	cd shortener && go test -tags=integration ./...
 run_redirect_integration_tests:
-	go test -tag=integration ./redirect/...
-run_all_integration_tests:
-	run_gateway_integration_tests
-	run_shortener_integration_tests
-	run_redirect_integration_tests
+	cd redirect && go test -tags=integration ./...
+run_all_integration_tests: run_gateway_integration_tests run_shortener_integration_tests run_redirect_integration_tests
 
 # Run Performance Tests
 
@@ -56,55 +57,39 @@ run_shortener_performance_tests:
 	k6 run perf/shortener.js
 run_redirect_performance_tests:
 	k6 run perf/redirect.js
-run_all_performance_tests:
-	run_gateway_performance_tests
-	run_shortener_performance_tests
-	run_redirect_performance_tests
+run_all_performance_tests: run_gateway_performance_tests run_shortener_performance_tests run_redirect_performance_tests
 
 # SQL Migrations
 
 migrate_gateway:
-	migrate -database postgresql://aziz:aziz333@localhost:5432/gateway?sslmode=disable -path gateway/migrations up
-
+	migrate -database postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/gateway?sslmode=disable -path gateway/migrations up
 migrate_shortener:
-	migrate -database postgresql://aziz:aziz333@localhost:5432/shortener?sslmode=disable -path shortener/migrations up
-
-run_all_migrations:
-	migrate_gateway
-	migrate_shortener
+	migrate -database postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/shortener?sslmode=disable -path shortener/migrations up
+run_all_migrations: migrate_gateway migrate_shortener
 
 # Docker
 
 docker_build_gateway:
-	cd gateway && docker build -t abdelaziz333/gateway:${APP_VERSION} .
-
+	cd gateway && docker build -t abdelaziz333/gateway:0.0.6 .
 docker_build_shortener:
-	cd shortener && docker build -t abdelaziz333/shortener:${APP_VERSION} .
-
+	cd shortener && docker build -t abdelaziz333/shortener:0.0.6 .
 docker_build_redirect:
-	cd redirect && docker build -t abdelaziz333/redirect:${APP_VERSION} .
-
+	cd redirect && docker build -t abdelaziz333/redirect:0.0.6 .
 docker_build_all:
 	docker compose build gateway shortener redirect
-
 build_each_separately: docker_build_gateway docker_build_shortener docker_build_redirect
 
 docker_push_gateway: docker_build_gateway
-	docker push abdelaziz333/gateway:${APP_VERSION}
-
+	docker push abdelaziz333/gateway:0.0.6
 docker_push_shortener: docker_build_shortener
-	docker push abdelaziz333/shortener:${APP_VERSION}
-
+	docker push abdelaziz333/shortener:0.0.6
 docker_push_redirect: docker_build_redirect
-	docker push abdelaziz333/redirect:${APP_VERSION}
-
+	docker push abdelaziz333/redirect:0.0.6
 docker_push_all: docker_push_gateway docker_push_shortener docker_push_redirect
 
 docker_run_apps:
 	docker compose --profile app up
-
 docker_up:
 	docker compose --profile all up -d
-
 docker_down:
 	docker compose --profile all down
