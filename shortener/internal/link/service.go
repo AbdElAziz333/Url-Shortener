@@ -144,7 +144,7 @@ func (s *service) Delete(ctx context.Context, userID uuid.UUID, code string) err
         Code:        link.Code,
         OriginalUrl: link.OriginalUrl,
         CustomAlias: link.CustomAlias,
-        ExpiresAt:   &now, // Passes *time.Time correctly
+        ExpiresAt:   &now,
         IsActive:    false, // Soft-delete
     }
 

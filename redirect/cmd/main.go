@@ -36,8 +36,7 @@ func main() {
 	}
 
 	resolveRepository := resolve.NewRepository(postgresDB)
-	cbResolveRepository := resolve.NewCircuitBreakerRepository(resolveRepository)
-	resolveService := resolve.NewService(cbResolveRepository, redisClient)
+	resolveService := resolve.NewService(resolveRepository, redisClient)
 	resolveHandler := resolve.NewHandler(resolveService)
 
 	router := server.NewRouter(resolveHandler)

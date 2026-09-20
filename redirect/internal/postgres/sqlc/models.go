@@ -12,9 +12,9 @@ import (
 
 type Link struct {
 	ID          uuid.UUID
-	UserID      uuid.UUID
 	Code        string
 	OriginalUrl string
+	UserID      uuid.UUID
 	CustomAlias *string
 	ExpiresAt   *time.Time
 	IsActive    bool

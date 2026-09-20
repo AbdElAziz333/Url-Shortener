@@ -11,7 +11,7 @@ import (
 type Repository interface {
 	FindAllByUserID(ctx context.Context, userID uuid.UUID, pagination Pagination) ([]sqlcgen.Link, error)
 	FindByCodeAndUserID(ctx context.Context, code string, userID uuid.UUID) (sqlcgen.Link, error)
-	Create(ctx context.Context, arg sqlcgen.CreateLinkParams) (sqlcgen.Link, error)
+	Create(ctx context.Context, arg sqlcgen.CreateLinkParams) (sqlcgen.CreateLinkRow, error)
 	Update(ctx context.Context, arg sqlcgen.UpdateLinkParams) (int64, error)
 }
 
@@ -58,7 +58,7 @@ func (r *repository) FindByCodeAndUserID(ctx context.Context, code string, userI
 	})
 }
 
-func (r *repository) Create(ctx context.Context, arg sqlcgen.CreateLinkParams) (sqlcgen.Link, error) {
+func (r *repository) Create(ctx context.Context, arg sqlcgen.CreateLinkParams) (sqlcgen.CreateLinkRow, error) {
 	return r.queries.CreateLink(ctx, arg)
 }
 

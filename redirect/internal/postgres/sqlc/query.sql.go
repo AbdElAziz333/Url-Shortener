@@ -10,7 +10,7 @@ import (
 )
 
 const findByCode = `-- name: FindByCode :one
-SELECT id, user_id, code, original_url, custom_alias, expires_at, is_active, created_at FROM link
+SELECT id, code, original_url, user_id, custom_alias, expires_at, is_active, created_at FROM link
 WHERE code = $1 AND is_active = true
 LIMIT 1
 `
@@ -20,9 +20,9 @@ func (q *Queries) FindByCode(ctx context.Context, code string) (Link, error) {
 	var i Link
 	err := row.Scan(
 		&i.ID,
-		&i.UserID,
 		&i.Code,
 		&i.OriginalUrl,
+		&i.UserID,
 		&i.CustomAlias,
 		&i.ExpiresAt,
 		&i.IsActive,

@@ -57,7 +57,7 @@ func (h *Handler) Create(c *gin.Context) {
 		return
 	}
 
-	var r *CreateRequest
+	var r CreateRequest
 	if err := c.ShouldBindJSON(&r); err != nil {
 		logrus.WithError(err).Warn("Invalid request body")
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -67,7 +67,7 @@ func (h *Handler) Create(c *gin.Context) {
 		return
 	}
 
-	d, err := h.service.Create(c.Request.Context(), userID, *r)
+	d, err := h.service.Create(c.Request.Context(), userID, r)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),

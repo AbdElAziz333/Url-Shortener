@@ -15,14 +15,24 @@ import (
 const createLink = `-- name: CreateLink :one
 
 INSERT INTO link (
-    id, user_id, code, original_url, custom_alias, expires_at, is_active, created_at
+    user_id, code, original_url, custom_alias, expires_at, is_active, created_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8
+    $1, $2, $3, $4, $5, $6, $7
 )
-RETURNING id, code, original_url, user_id, custom_alias, expires_at, is_active, created_at
+RETURNING id, user_id, code, original_url, custom_alias, expires_at, is_active, created_at
 `
 
 type CreateLinkParams struct {
+	UserID      uuid.UUID
+	Code        string
+	OriginalUrl string
+	CustomAlias *string
+	ExpiresAt   *time.Time
+	IsActive    bool
+	CreatedAt   time.Time
+}
+
+type CreateLinkRow struct {
 	ID          uuid.UUID
 	UserID      uuid.UUID
 	Code        string
@@ -33,9 +43,8 @@ type CreateLinkParams struct {
 	CreatedAt   time.Time
 }
 
-func (q *Queries) CreateLink(ctx context.Context, arg CreateLinkParams) (Link, error) {
+func (q *Queries) CreateLink(ctx context.Context, arg CreateLinkParams) (CreateLinkRow, error) {
 	row := q.db.QueryRow(ctx, createLink,
-		arg.ID,
 		arg.UserID,
 		arg.Code,
 		arg.OriginalUrl,
@@ -44,12 +53,12 @@ func (q *Queries) CreateLink(ctx context.Context, arg CreateLinkParams) (Link, e
 		arg.IsActive,
 		arg.CreatedAt,
 	)
-	var i Link
+	var i CreateLinkRow
 	err := row.Scan(
 		&i.ID,
+		&i.UserID,
 		&i.Code,
 		&i.OriginalUrl,
-		&i.UserID,
 		&i.CustomAlias,
 		&i.ExpiresAt,
 		&i.IsActive,
