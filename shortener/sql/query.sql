@@ -14,11 +14,11 @@ LIMIT 1;
 -- name: CreateLink :one
 
 INSERT INTO link (
-    id, user_id, code, original_url, custom_alias, expires_at, is_active, created_at
+    user_id, code, original_url, custom_alias, expires_at, is_active, created_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8
+    $1, $2, $3, $4, $5, $6, $7
 )
-RETURNING *;
+RETURNING id, user_id, code, original_url, custom_alias, expires_at, is_active, created_at;;
 
 -- name: UpdateLink :execrows
 
