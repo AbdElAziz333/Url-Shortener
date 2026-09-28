@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gateway-config
+  namespace: url-shortener
+  labels:
+    app: gateway
+    app.kubernetes.io/name: gateway
+    app.kubernetes.io/part-of: url-shortener
+data:
+  APP_ENV: "kubernetes"
+  SERVICE_NAME: "gateway"
+  SERVICE_PORT: "8080"
+  SHORTENER_SERVICE_URL: "http://shortener:8081"
+  REDIRECT_SERVICE_URL: "http://redirect:8082"
+  POSTGRES_HOST: "postgres"
+  POSTGRES_DB: "gateway"
+  POSTGRES_USER: "aziz"
+  REDIS_ADDR: "redis-master:6379"
+  REDIS_USER: "default"
+  JWT_ACCESS_EXPIRY: "15m"
+  JWT_REFRESH_EXPIRY: "168h"

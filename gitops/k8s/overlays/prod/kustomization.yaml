@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: url-shortener
+
+resources:
+  - ingress.yaml
+  - managed-cert.yaml
+  - ../../base
+
+images:
+  - name: abdelaziz333/gateway
+    newTag: prod
+  - name: abdelaziz333/shortener
+    newTag: prod
+  - name: abdelaziz333/redirect
+    newTag: prod

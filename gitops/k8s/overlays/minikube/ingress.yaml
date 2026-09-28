@@ -1,0 +1,52 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: url-shortener
+  namespace: url-shortener
+  labels:
+    app.kubernetes.io/part-of: url-shortener
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: url-shortener.local
+      http:
+        paths:
+          - path: /gateway/health
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway
+                port:
+                  number: 8080
+                  
+          - path: /shortener/health
+            pathType: Prefix
+            backend:
+              service:
+                name: shortener
+                port:
+                  number: 8081
+                  
+          - path: /redirect/health
+            pathType: Prefix
+            backend:
+              service:
+                name: redirect
+                port:
+                  number: 8082
+                  
+          - path: /analytics/health
+            pathType: Prefix
+            backend:
+              service:
+                name: analytics
+                port:
+                  number: 8083
+
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway
+                port:
+                  number: 8080

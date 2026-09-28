@@ -1,0 +1,29 @@
+fullnameOverride: redis
+architecture: standalone
+
+auth:
+  enabled: true
+  existingSecret: redis-secret
+  existingSecretPasswordKey: password
+
+master:
+  persistence:
+    enabled: true
+    size: 1Gi
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "512Mi"
+    limits:
+      cpu: "500m"
+      memory: "1Gi"
+
+networkPolicy:
+  enabled: false
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    additionalLabels:
+      release: prometheus
